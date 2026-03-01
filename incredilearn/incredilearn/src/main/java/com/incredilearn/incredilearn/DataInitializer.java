@@ -30,7 +30,7 @@ public class DataInitializer {
             User enseignant = new User();
             enseignant.setNom("Dr. Marie Dupont");
             enseignant.setEmail("marie.dupont@incredilearn.com");
-            enseignant.setPassword(passwordEncoder.encode("password123"));
+            enseignant.setPassword(passwordEncoder.encode("teacher123"));
             enseignant.setRole(Role.ENSEIGNANT);
             enseignant.setDomain("informatique");
             enseignant.setVerified(true);
