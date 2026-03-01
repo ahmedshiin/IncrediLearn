@@ -43,12 +43,14 @@ const authStore = useAuthStore()
             <p class="info-value">{{ authStore.user?.domain }}</p>
           </div>
 
-          <div class="info-item">
+          <div v-if="authStore.userRole === 'enseignant'" class="field">
+            <div class="info-item">
             <label class="info-label">Statut</label>
             <p class="info-value">
               <span v-if="authStore.user?.isVerified" class="badge badge-success">✓ Vérifié</span>
               <span v-else class="badge badge-warning">En attente de vérification</span>
             </p>
+            </div>
           </div>
 
           <div class="info-item">
