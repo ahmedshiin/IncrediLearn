@@ -47,7 +47,7 @@ const authStore = useAuthStore()
             <div class="info-item">
             <label class="info-label">Statut</label>
             <p class="info-value">
-              <span v-if="authStore.user?.isVerified" class="badge badge-success">✓ Vérifié</span>
+              <span v-if="authStore.user?.verified" class="badge badge-success">✓ Vérifié</span>
               <span v-else class="badge badge-warning">En attente de vérification</span>
             </p>
             </div>

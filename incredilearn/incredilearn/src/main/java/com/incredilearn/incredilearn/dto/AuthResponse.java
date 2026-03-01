@@ -6,7 +6,7 @@ public class AuthResponse {
     private String email;
     private String role;
     private String domain;
-    private boolean isVerified;
+    private boolean verified;
     private String message;
     
     // Constructeurs
@@ -62,11 +62,11 @@ public class AuthResponse {
     }
     
     public boolean isVerified() {
-        return isVerified;
+        return verified;
     }
     
     public void setVerified(boolean verified) {
-        isVerified = verified;
+        this.verified = verified;
     }
     
     public String getMessage() {

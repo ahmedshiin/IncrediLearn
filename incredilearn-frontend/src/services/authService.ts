@@ -20,7 +20,7 @@ export interface AuthResponse {
   email?: string
   role?: string
   domain?: string
-  isVerified?: boolean
+  verified?: boolean
   message: string
 }
 
