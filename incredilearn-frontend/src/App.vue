@@ -68,7 +68,7 @@ onUnmounted(() => {
 
         <!-- User Menu - Connecté -->
         <div v-else class="nav-auth">
-          <div v-if="authStore.userRole === 'enseignant' && authStore.user?.isVerified" class="field">
+          <div v-if="authStore.userRole === 'enseignant' && authStore.user?.verified" class="field">
             <RouterLink to="/creer-cours" class="btn-creer">Créer un cours</RouterLink>
           </div>
           <div class="user-menu-wrapper">
