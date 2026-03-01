@@ -1,10 +1,50 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter, useRoute } from 'vue-router'
+import { authService } from '@/services/authService'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
 
 const email     = ref('')
 const password  = ref('')
 const showPass  = ref(false)
+const loading   = ref(false)
+const error     = ref('')
+
+async function handleLogin() {
+  if (!email.value || !password.value) {
+    error.value = 'Veuillez remplir tous les champs'
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    const response = await authService.login({
+      email: email.value,
+      password: password.value
+    })
+
+    if (response.id) {
+      // Mettre à jour le store
+      authStore.setUser(response)
+      // Rediriger vers la page d'origine ou la page d'accueil
+      const redirect = route.query.redirect as string || '/'
+      router.push(redirect)
+    } else {
+      error.value = response.message || 'Erreur lors de la connexion'
+    }
+  } catch (err) {
+    error.value = 'Erreur de connexion au serveur'
+    console.error(err)
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <template>
@@ -32,11 +72,16 @@ const showPass  = ref(false)
       </div>
 
       <!-- Form -->
-      <form @submit.prevent class="auth-form">
+      <form @submit.prevent="handleLogin" class="auth-form">
+        <!-- Message d'erreur -->
+        <div v-if="error" class="error-message">
+          {{ error }}
+        </div>
+        
         <!-- Email -->
         <div class="field">
           <label class="field-label">Adresse email</label>
-          <input v-model="email" type="email" class="field-input" placeholder="votre@email.com" />
+          <input v-model="email" type="email" class="field-input" placeholder="votre@email.com" required />
         </div>
 
         <!-- Mot de passe -->
@@ -48,6 +93,7 @@ const showPass  = ref(false)
               :type="showPass ? 'text' : 'password'"
               class="field-input pass-input"
               placeholder="••••••••"
+              required
             />
             <button type="button" class="pass-toggle" @click="showPass = !showPass" aria-label="Afficher/masquer">
               <svg v-if="!showPass" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -68,7 +114,9 @@ const showPass  = ref(false)
           </div>
         </div>
 
-        <button type="submit" class="btn-submit">Se connecter</button>
+        <button type="submit" class="btn-submit" :disabled="loading">
+          {{ loading ? 'Connexion...' : 'Se connecter' }}
+        </button>
       </form>
 
       <!-- Divider -->
@@ -171,6 +219,17 @@ const showPass  = ref(false)
 
 /* Form */
 .auth-form { display: flex; flex-direction: column; gap: 1rem; }
+
+/* Error message */
+.error-message {
+  background: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  color: #DC2626;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  text-align: center;
+}
 
 .field { display: flex; flex-direction: column; gap: 0.35rem; }
 .field-label {

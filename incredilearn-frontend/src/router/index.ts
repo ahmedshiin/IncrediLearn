@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { authService } from '@/services/authService'
 import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
@@ -8,26 +9,49 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+      meta: { requiresAuth: false }, // Page publique
     },
     {
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue'),
+      meta: { requiresAuth: false }, // Page publique
     },
     {
       path: '/inscription',
       name: 'inscription',
       component: () => import('../views/InscriptionView.vue'),
+      meta: { requiresAuth: false, guestOnly: true }, // Seulement pour non-connectés
     },
     {
       path: '/connexion',
       name: 'connexion',
       component: () => import('../views/ConnexionView.vue'),
+      meta: { requiresAuth: false, guestOnly: true }, // Seulement pour non-connectés
     },
     {
       path: '/cours/:id',
       name: 'cours',
       component: () => import('../views/CourseView.vue'),
+      meta: { requiresAuth: true }, // Page protégée
+    },
+    {
+      path: '/profil',
+      name: 'profil',
+      component: () => import('../views/ProfilView.vue'),
+      meta: { requiresAuth: true }, // Page protégée
+    },
+    {
+      path: '/mes-cours',
+      name: 'mes-cours',
+      component: () => import('../views/MesCoursView.vue'),
+      meta: { requiresAuth: true }, // Page protégée
+    },
+    {
+      path: '/tuteurs',
+      name: 'tuteurs',
+      component: () => import('../views/HomeView.vue'), // TODO: créer TuteursView
+      meta: { requiresAuth: false }, // Page publique
     },
     {
       path: '/creer-cours',
@@ -35,6 +59,29 @@ const router = createRouter({
       component: () => import('../views/CreateCourseView.vue'),
     },
   ],
+})
+
+// Navigation guard pour protéger les routes
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = authService.isAuthenticated()
+  const requiresAuth = to.meta.requiresAuth
+  const guestOnly = to.meta.guestOnly
+
+  // Si la route nécessite une authentification et l'utilisateur n'est pas connecté
+  if (requiresAuth && !isAuthenticated) {
+    next({
+      name: 'connexion',
+      query: { redirect: to.fullPath }, // Sauvegarder la page cible pour redirection après connexion
+    })
+  }
+  // Si la route est réservée aux invités (connexion/inscription) et l'utilisateur est déjà connecté
+  else if (guestOnly && isAuthenticated) {
+    next({ name: 'home' })
+  }
+  // Sinon, autoriser l'accès
+  else {
+    next()
+  }
 })
 
 export default router
