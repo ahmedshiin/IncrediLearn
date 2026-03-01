@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 
 const searchQuery  = ref('')
@@ -9,158 +9,87 @@ const selectedLvl  = ref('Tous les niveaux')
 const categories = ['Tous', 'Programmation', 'Design', 'Marketing', 'Bureautique', 'Business']
 const levels     = ['Tous les niveaux', 'Débutant', 'Intermédiaire', 'Avancé']
 
-const newCourses = [
-  {
-    id: 10,
-    title: 'Intelligence Artificielle avec TensorFlow',
-    instructor: 'Dr. Jean Leclerc',
-    description: 'Créez des modèles de machine learning avec TensorFlow et Keras.',
-    rating: 4.9,
-    duration: '20h',
-    students: '1 200',
-    badge: 'Avancé',
-    badgeClass: 'badge-orange',
-    image: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=420&h=220&fit=crop&q=80',
-  },
-  {
-    id: 11,
-    title: 'Développement Web React',
-    instructor: 'Claire Rousseau',
-    description: 'Construisez des applications web modernes avec React et TypeScript.',
-    rating: 4.8,
-    duration: '18h',
-    students: '2 100',
-    badge: 'Intermédiaire',
-    badgeClass: 'badge-blue',
-    image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=420&h=220&fit=crop&q=80',
-  },
-  {
-    id: 12,
-    title: 'Photographie Créative',
-    instructor: 'Émilie Laurent',
-    description: "Techniques de composition et d'éclairage pour des photos exceptionnelles.",
-    rating: 4.7,
-    duration: '10h',
-    students: '1 890',
-    badge: 'Débutant',
-    badgeClass: 'badge-green',
-    image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=420&h=220&fit=crop&q=80',
-  },
-  {
-    id: 13,
-    title: 'Cybersécurité Fondamentale',
-    instructor: 'Dr. Antoine Moreau',
-    description: 'Protégez vos systèmes contre les menaces cybernétiques modernes.',
-    rating: 4.8,
-    duration: '14h',
-    students: '750',
-    badge: 'Intermédiaire',
-    badgeClass: 'badge-blue',
-    image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=420&h=220&fit=crop&q=80',
-  },
-]
+interface CourseItem {
+  id: number
+  title: string
+  instructor: string
+  description: string
+  rating: number
+  duration: string
+  students: string
+  badge: string
+  badgeClass: string
+  image: string
+  domain: string
+}
 
-const recommendedCourses = [
-  {
-    id: 1,
-    title: 'Introduction à la programmation Python',
-    instructor: 'Dr. Marie Dupont',
-    description: 'Apprenez les bases de Python, le langage de programmation le plus demandé.',
-    rating: 4.9,
-    duration: '12h',
-    students: '2 340',
-    badge: 'Débutant',
-    badgeClass: 'badge-green',
-    image: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=420&h=220&fit=crop&q=80',
-  },
-  {
-    id: 10,
-    title: 'Intelligence Artificielle avec TensorFlow',
-    instructor: 'Dr. Jean Leclerc',
-    description: 'Créez des modèles de machine learning avec TensorFlow et Keras.',
-    rating: 4.9,
-    duration: '20h',
-    students: '1 200',
-    badge: 'Avancé',
-    badgeClass: 'badge-orange',
-    image: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=420&h=220&fit=crop&q=80',
-  },
-  {
-    id: 2,
-    title: 'Design UI/UX Moderne',
-    instructor: 'Sophie Martin',
-    description: "Maîtrisez les principes du design d'interface utilisateur moderne.",
-    rating: 4.8,
-    duration: '8h',
-    students: '1 560',
-    badge: 'Intermédiaire',
-    badgeClass: 'badge-blue',
-    image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=420&h=220&fit=crop&q=80',
-  },
-  {
-    id: 11,
-    title: 'Développement Web React',
-    instructor: 'Claire Rousseau',
-    description: 'Construisez des applications web modernes avec React et TypeScript.',
-    rating: 4.8,
-    duration: '18h',
-    students: '2 100',
-    badge: 'Intermédiaire',
-    badgeClass: 'badge-blue',
-    image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=420&h=220&fit=crop&q=80',
-  },
-]
+const allCourses = ref<CourseItem[]>([])
 
-const courses = [
-  {
-    id: 1,
-    title: 'Introduction à la programmation Python',
-    instructor: 'Dr. Marie Dupont',
-    description: 'Apprenez les bases de Python, le langage de programmation le plus demandé.',
-    rating: 4.9,
-    duration: '12h',
-    students: '2 340',
-    badge: 'Débutant',
-    badgeClass: 'badge-green',
-    image: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=420&h=220&fit=crop&q=80',
-  },
-  {
-    id: 2,
-    title: 'Design UI/UX Moderne',
-    instructor: 'Sophie Martin',
-    description: "Maîtrisez les principes du design d'interface utilisateur moderne.",
-    rating: 4.8,
-    duration: '8h',
-    students: '1 560',
-    badge: 'Intermédiaire',
-    badgeClass: 'badge-blue',
-    image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=420&h=220&fit=crop&q=80',
-  },
-  {
-    id: 3,
-    title: 'Marketing Digital Avancé',
-    instructor: 'Thomas Bernard',
-    description: 'Stratégies avancées pour le marketing en ligne et les réseaux sociaux.',
+const DOMAIN_IMAGES: Record<string, string> = {
+  'informatique': 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=420&h=220&fit=crop&q=80',
+  'programmation': 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=420&h=220&fit=crop&q=80',
+  'design': 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=420&h=220&fit=crop&q=80',
+  'marketing': 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=420&h=220&fit=crop&q=80',
+  'bureautique': 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=420&h=220&fit=crop&q=80',
+  'business': 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=420&h=220&fit=crop&q=80',
+  'mathematiques': 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=420&h=220&fit=crop&q=80',
+  'physique': 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=420&h=220&fit=crop&q=80',
+  'langues': 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=420&h=220&fit=crop&q=80',
+  'default': 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=420&h=220&fit=crop&q=80',
+}
+
+function getCourseImage(domain: string): string {
+  const key = (domain || '').toLowerCase().split(' ')[0].split('&')[0].trim()
+  return DOMAIN_IMAGES[key] || DOMAIN_IMAGES['default']
+}
+
+function getBadgeClass(niveau: string): string {
+  if (niveau === 'Débutant') return 'badge-green'
+  if (niveau === 'Avancé') return 'badge-orange'
+  return 'badge-blue'
+}
+
+function mapCourse(c: any): CourseItem {
+  return {
+    id: c.id,
+    title: c.titre,
+    instructor: c.enseignantNom || 'Instructeur',
+    description: c.description || '',
     rating: 4.7,
-    duration: '15h',
-    students: '890',
-    badge: 'Avancé',
-    badgeClass: 'badge-orange',
-    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=420&h=220&fit=crop&q=80',
-  },
-  {
-    id: 4,
-    title: 'Excel pour Professionnels',
-    instructor: 'Marc Dubois',
-    description: 'Maîtrisez Excel avec les formules avancées et les tableaux croisés dynamiques.',
-    rating: 4.6,
-    duration: '6h',
-    students: '3 400',
-    badge: 'Intermédiaire',
-    badgeClass: 'badge-blue',
-    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=420&h=220&fit=crop&q=80',
-  },
-]
+    duration: c.dureeHeures ? `${c.dureeHeures}h` : '-',
+    students: c.nombreEtudiants != null ? String(c.nombreEtudiants) : '0',
+    badge: c.niveau || 'Débutant',
+    badgeClass: getBadgeClass(c.niveau),
+    image: getCourseImage(c.domain),
+    domain: c.domain || '',
+  }
+}
+
+onMounted(async () => {
+  try {
+    const res = await fetch('http://localhost:8080/api/courses')
+    const data = await res.json()
+    allCourses.value = data.map(mapCourse)
+  } catch (e) {
+    console.error('Erreur chargement cours', e)
+  }
+})
+
+const filteredCourses = computed(() => {
+  const q = searchQuery.value.toLowerCase()
+  return allCourses.value.filter(c => {
+    const matchesSearch = !q ||
+      c.title.toLowerCase().includes(q) ||
+      c.instructor.toLowerCase().includes(q) ||
+      c.description.toLowerCase().includes(q)
+    const matchesLvl = selectedLvl.value === 'Tous les niveaux' || c.badge === selectedLvl.value
+    return matchesSearch && matchesLvl
+  })
+})
+
+const courses = computed(() => filteredCourses.value)
+const newCourses = computed(() => filteredCourses.value.slice(0, 4))
+const recommendedCourses = computed(() => filteredCourses.value.slice(0, 4))
 </script>
 
 <template>

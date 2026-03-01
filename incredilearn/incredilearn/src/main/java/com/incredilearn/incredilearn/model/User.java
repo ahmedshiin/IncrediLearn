@@ -47,9 +47,6 @@ public class User {
     private boolean isVerified = false; // Pour valider les enseignants
 
     @Column(name = "is_blocked")
-    private boolean isBlocked = false;
-    
-    @Column(name = "is_blocked")
     private boolean isBlocked = false; // Pour bloquer des utilisateurs
     
     @ManyToMany
@@ -142,14 +139,6 @@ public class User {
         return isBlocked;
     }
 
-    public void setBlocked(boolean blocked) {
-        isBlocked = blocked;
-    }
-    
-    public boolean isBlocked() {
-        return isBlocked;
-    }
-    
     public void setBlocked(boolean blocked) {
         isBlocked = blocked;
     }

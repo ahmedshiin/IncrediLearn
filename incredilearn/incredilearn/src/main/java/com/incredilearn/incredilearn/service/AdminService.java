@@ -12,6 +12,7 @@ import com.incredilearn.incredilearn.dto.UserAdminDTO;
 import com.incredilearn.incredilearn.model.Role;
 import com.incredilearn.incredilearn.model.User;
 import com.incredilearn.incredilearn.repository.CourseRepository;
+import com.incredilearn.incredilearn.repository.UserDocumentRepository;
 import com.incredilearn.incredilearn.repository.UserRepository;
 
 @Service
@@ -20,32 +21,42 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
+    private final UserDocumentRepository documentRepository;
 
-    public AdminService(UserRepository userRepository, CourseRepository courseRepository) {
+    public AdminService(UserRepository userRepository, CourseRepository courseRepository, UserDocumentRepository documentRepository) {
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
+        this.documentRepository = documentRepository;
     }
 
     public Map<String, Object> getStats() {
         Map<String, Object> stats = new HashMap<>();
 
-        long totalUsers = userRepository.count();
-        long totalStudents = userRepository.findAll().stream()
+        List<User> allUsers = userRepository.findAll();
+
+        long totalUsers = allUsers.stream()
+            .filter(u -> u.getRole() != Role.ADMIN)
+            .count();
+        long totalStudents = allUsers.stream()
             .filter(u -> u.getRole() == Role.ETUDIANT)
             .count();
-        long totalTeachers = userRepository.findAll().stream()
+        long totalTeachers = allUsers.stream()
             .filter(u -> u.getRole() == Role.ENSEIGNANT)
             .count();
-        long totalCourses = courseRepository.count();
-        long pendingVerifications = userRepository.findAll().stream()
+        long activeCourses = courseRepository.count();
+        long pendingValidations = allUsers.stream()
             .filter(u -> u.getRole() == Role.ENSEIGNANT && !u.isVerified())
+            .count();
+        long blockedUsers = allUsers.stream()
+            .filter(u -> u.isBlocked())
             .count();
 
         stats.put("totalUsers", totalUsers);
         stats.put("totalStudents", totalStudents);
         stats.put("totalTeachers", totalTeachers);
-        stats.put("totalCourses", totalCourses);
-        stats.put("pendingVerifications", pendingVerifications);
+        stats.put("activeCourses", activeCourses);
+        stats.put("pendingValidations", pendingValidations);
+        stats.put("blockedUsers", blockedUsers);
 
         return stats;
     }
@@ -69,6 +80,11 @@ public class AdminService {
             .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
         user.setBlocked(blocked);
         return convertToDTO(userRepository.save(user));
+    }
+
+    public void deleteUser(Long id) {
+        documentRepository.deleteByUserId(id);
+        userRepository.deleteById(id);
     }
 
     private UserAdminDTO convertToDTO(User user) {

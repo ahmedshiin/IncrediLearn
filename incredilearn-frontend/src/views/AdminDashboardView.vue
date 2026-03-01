@@ -1,8 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { adminService, type AdminUser, type AdminStats } from '@/services/adminService'
+import { adminService, type AdminUser, type AdminStats, type DocMeta } from '@/services/adminService'
 import { useAuthStore } from '@/stores/auth'
+
+interface CourseItem {
+  id: number
+  titre: string
+  description: string
+  domain: string
+  enseignantNom: string
+  dureeHeures: number
+  niveau: string
+  nombreEtudiants: number
+}
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -10,26 +21,44 @@ const authStore = useAuthStore()
 const activeSection = ref<'dashboard' | 'utilisateurs' | 'cours' | 'moderation'>('dashboard')
 const stats = ref<AdminStats>({ totalUsers: 0, activeCourses: 0, pendingValidations: 0, blockedUsers: 0 })
 const users = ref<AdminUser[]>([])
+const allCourses = ref<CourseItem[]>([])
 const loading = ref(true)
 const searchQuery = ref('')
+const roleFilter = ref<'all' | 'etudiant' | 'enseignant'>('all')
+const showFilterDropdown = ref(false)
 
-const recentUsers = computed(() => users.value.slice(0, 10))
-const pendingTeachers = computed(() => users.value.filter(u => u.role === 'enseignant' && !u.isVerified))
+// Docs modal
+const selectedTeacher = ref<AdminUser | null>(null)
+const teacherDocs = ref<DocMeta[]>([])
+const docsLoading = ref(false)
+
+const pendingTeachers = computed(() => users.value.filter(u => u.role?.toLowerCase() === 'enseignant' && !u.isVerified))
 
 const filteredUsers = computed(() => {
   const q = searchQuery.value.toLowerCase()
-  return users.value.filter(u =>
-    u.nom.toLowerCase().includes(q) ||
-    u.email.toLowerCase().includes(q) ||
-    u.role.toLowerCase().includes(q)
-  )
+  return users.value.filter(u => {
+    if (u.role?.toLowerCase() === 'admin') return false
+    const matchesSearch = u.nom.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.role.toLowerCase().includes(q)
+    const matchesRole = roleFilter.value === 'all' ||
+      u.role?.toLowerCase() === roleFilter.value
+    return matchesSearch && matchesRole
+  })
 })
+
+const recentUsers = computed(() => filteredUsers.value.slice(0, 10))
 
 onMounted(async () => {
   try {
-    const [s, u] = await Promise.all([adminService.getStats(), adminService.getUsers()])
+    const [s, u, c] = await Promise.all([
+      adminService.getStats(),
+      adminService.getUsers(),
+      fetch('http://localhost:8080/api/courses').then(r => r.json())
+    ])
     stats.value = s
     users.value = u
+    allCourses.value = c
   } catch (e) {
     console.error('Erreur chargement admin', e)
   } finally {
@@ -67,6 +96,31 @@ async function toggleBlock(user: AdminUser) {
   if (idx !== -1) users.value[idx] = updated
   const s = await adminService.getStats()
   stats.value = s
+}
+
+async function refuseTeacher(user: AdminUser) {
+  if (!confirm(`Refuser et supprimer le compte de ${user.nom} ?`)) return
+  await adminService.deleteUser(user.id)
+  users.value = users.value.filter(u => u.id !== user.id)
+  const s = await adminService.getStats()
+  stats.value = s
+}
+
+async function openDocsModal(user: AdminUser) {
+  selectedTeacher.value = user
+  docsLoading.value = true
+  teacherDocs.value = await adminService.getUserDocuments(user.id)
+  docsLoading.value = false
+}
+
+function closeDocsModal() {
+  selectedTeacher.value = null
+  teacherDocs.value = []
+}
+
+function setRoleFilter(v: 'all' | 'etudiant' | 'enseignant') {
+  roleFilter.value = v
+  showFilterDropdown.value = false
 }
 
 function logout() {
@@ -295,10 +349,15 @@ function barY(v: number) {
               <div class="table-title">Utilisateurs Récents</div>
               <div class="table-sub">Dernières inscriptions sur la plateforme</div>
             </div>
-            <button class="filter-btn">
+            <button class="filter-btn" @click="showFilterDropdown = !showFilterDropdown">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-              Filtrer
+              Filtrer{{ roleFilter !== 'all' ? ` (${roleFilter === 'etudiant' ? 'Étudiant' : 'Instructeur'})` : '' }}
             </button>
+            <div v-if="showFilterDropdown" class="filter-dropdown">
+              <button @click="setRoleFilter('all')" :class="{ active: roleFilter === 'all' }">Tous</button>
+              <button @click="setRoleFilter('etudiant')" :class="{ active: roleFilter === 'etudiant' }">Étudiant</button>
+              <button @click="setRoleFilter('enseignant')" :class="{ active: roleFilter === 'enseignant' }">Instructeur</button>
+            </div>
           </div>
           <div class="table-wrapper">
             <table>
@@ -310,6 +369,7 @@ function barY(v: number) {
                   <th>STATUT</th>
                   <th>DATE D'INSCRIPTION</th>
                   <th>COURS</th>
+                  <th>JUSTIFICATIFS</th>
                   <th>ACTIONS</th>
                 </tr>
               </thead>
@@ -323,18 +383,22 @@ function barY(v: number) {
                   </td>
                   <td class="email-cell">{{ u.email }}</td>
                   <td>
-                    <span class="role-badge" :class="u.role">{{ u.role === 'enseignant' ? 'Instructeur' : 'Étudiant' }}</span>
+                    <span class="role-badge" :class="u.role?.toLowerCase()">{{ u.role?.toLowerCase() === 'enseignant' ? 'Instructeur' : u.role?.toLowerCase() === 'admin' ? 'Admin' : 'Étudiant' }}</span>
                   </td>
                   <td>
                     <span v-if="u.isBlocked" class="status-badge blocked">⊘ Bloqué</span>
-                    <span v-else-if="u.role === 'enseignant' && !u.isVerified" class="status-badge pending">⏳ En attente</span>
+                    <span v-else-if="u.role?.toLowerCase() === 'enseignant' && !u.isVerified" class="status-badge pending">En attente</span>
                     <span v-else class="status-badge active">✓ Actif</span>
                   </td>
                   <td class="date-cell">{{ formatDate(u.createdAt) }}</td>
                   <td class="courses-cell">{{ u.courseCount }}</td>
                   <td>
+                    <button v-if="u.role?.toLowerCase() === 'enseignant'" class="btn-action btn-info" @click="openDocsModal(u)">Voir</button>
+                    <span v-else class="text-muted">-</span>
+                  </td>
+                  <td>
                     <div class="action-buttons">
-                      <button v-if="u.role === 'enseignant'" class="btn-action" :class="u.isVerified ? 'btn-warn' : 'btn-success'" @click="toggleVerify(u)">
+                      <button v-if="u.role?.toLowerCase() === 'enseignant'" class="btn-action" :class="u.isVerified ? 'btn-warn' : 'btn-success'" @click="toggleVerify(u)">
                         {{ u.isVerified ? 'Révoquer' : 'Valider' }}
                       </button>
                       <button class="btn-action" :class="u.isBlocked ? 'btn-success' : 'btn-danger'" @click="toggleBlock(u)">
@@ -344,7 +408,7 @@ function barY(v: number) {
                   </td>
                 </tr>
                 <tr v-if="recentUsers.length === 0">
-                  <td colspan="7" class="empty-row">Aucun utilisateur</td>
+                  <td colspan="8" class="empty-row">Aucun utilisateur</td>
                 </tr>
               </tbody>
             </table>
@@ -360,10 +424,15 @@ function barY(v: number) {
               <div class="table-title">Tous les Utilisateurs</div>
               <div class="table-sub">Gestion complète des comptes</div>
             </div>
-            <button class="filter-btn">
+            <button class="filter-btn" @click="showFilterDropdown = !showFilterDropdown">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-              Filtrer
+              Filtrer{{ roleFilter !== 'all' ? ` (${roleFilter === 'etudiant' ? 'Étudiant' : 'Instructeur'})` : '' }}
             </button>
+            <div v-if="showFilterDropdown" class="filter-dropdown">
+              <button @click="setRoleFilter('all')" :class="{ active: roleFilter === 'all' }">Tous</button>
+              <button @click="setRoleFilter('etudiant')" :class="{ active: roleFilter === 'etudiant' }">Étudiant</button>
+              <button @click="setRoleFilter('enseignant')" :class="{ active: roleFilter === 'enseignant' }">Instructeur</button>
+            </div>
           </div>
           <div class="table-wrapper">
             <table>
@@ -376,6 +445,7 @@ function barY(v: number) {
                   <th>STATUT</th>
                   <th>DATE D'INSCRIPTION</th>
                   <th>COURS</th>
+                  <th>JUSTIFICATIFS</th>
                   <th>ACTIONS</th>
                 </tr>
               </thead>
@@ -389,19 +459,23 @@ function barY(v: number) {
                   </td>
                   <td class="email-cell">{{ u.email }}</td>
                   <td>
-                    <span class="role-badge" :class="u.role">{{ u.role === 'enseignant' ? 'Instructeur' : 'Étudiant' }}</span>
+                    <span class="role-badge" :class="u.role?.toLowerCase()">{{ u.role?.toLowerCase() === 'enseignant' ? 'Instructeur' : u.role?.toLowerCase() === 'admin' ? 'Admin' : 'Étudiant' }}</span>
                   </td>
                   <td class="date-cell">{{ u.domain || '-' }}</td>
                   <td>
                     <span v-if="u.isBlocked" class="status-badge blocked">⊘ Bloqué</span>
-                    <span v-else-if="u.role === 'enseignant' && !u.isVerified" class="status-badge pending">⏳ En attente</span>
+                    <span v-else-if="u.role?.toLowerCase() === 'enseignant' && !u.isVerified" class="status-badge pending">En attente</span>
                     <span v-else class="status-badge active">✓ Actif</span>
                   </td>
                   <td class="date-cell">{{ formatDate(u.createdAt) }}</td>
                   <td class="courses-cell">{{ u.courseCount }}</td>
                   <td>
+                    <button v-if="u.role?.toLowerCase() === 'enseignant'" class="btn-action btn-info" @click="openDocsModal(u)">Voir</button>
+                    <span v-else class="text-muted">-</span>
+                  </td>
+                  <td>
                     <div class="action-buttons">
-                      <button v-if="u.role === 'enseignant'" class="btn-action" :class="u.isVerified ? 'btn-warn' : 'btn-success'" @click="toggleVerify(u)">
+                      <button v-if="u.role?.toLowerCase() === 'enseignant'" class="btn-action" :class="u.isVerified ? 'btn-warn' : 'btn-success'" @click="toggleVerify(u)">
                         {{ u.isVerified ? 'Révoquer' : 'Valider' }}
                       </button>
                       <button class="btn-action" :class="u.isBlocked ? 'btn-success' : 'btn-danger'" @click="toggleBlock(u)">
@@ -411,7 +485,7 @@ function barY(v: number) {
                   </td>
                 </tr>
                 <tr v-if="filteredUsers.length === 0">
-                  <td colspan="8" class="empty-row">Aucun utilisateur trouvé</td>
+                  <td colspan="9" class="empty-row">Aucun utilisateur trouvé</td>
                 </tr>
               </tbody>
             </table>
@@ -425,12 +499,43 @@ function barY(v: number) {
           <div class="table-header">
             <div>
               <div class="table-title">Gestion des Cours</div>
-              <div class="table-sub">{{ stats.activeCourses }} cours actifs sur la plateforme</div>
+              <div class="table-sub">{{ allCourses.length }} cours actifs sur la plateforme</div>
             </div>
           </div>
-          <div class="empty-section">
+          <div v-if="allCourses.length === 0" class="empty-section">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            <p>{{ stats.activeCourses }} cours disponibles sur la plateforme</p>
+            <p>Aucun cours disponible pour le moment</p>
+          </div>
+          <div v-else class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>TITRE</th>
+                  <th>INSTRUCTEUR</th>
+                  <th>DOMAINE</th>
+                  <th>NIVEAU</th>
+                  <th>DURÉE</th>
+                  <th>ÉTUDIANTS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="c in allCourses" :key="c.id">
+                  <td>
+                    <div class="course-title-cell">
+                      <span class="course-title">{{ c.titre }}</span>
+                      <span class="course-desc">{{ c.description?.slice(0, 60) }}{{ c.description?.length > 60 ? '...' : '' }}</span>
+                    </div>
+                  </td>
+                  <td class="email-cell">{{ c.enseignantNom || '-' }}</td>
+                  <td>{{ c.domain || '-' }}</td>
+                  <td>
+                    <span class="role-badge" :class="c.niveau === 'Débutant' ? 'etudiant' : c.niveau === 'Avancé' ? 'enseignant' : 'admin'">{{ c.niveau || '-' }}</span>
+                  </td>
+                  <td class="date-cell">{{ c.dureeHeures ? c.dureeHeures + 'h' : '-' }}</td>
+                  <td class="courses-cell">{{ c.nombreEtudiants ?? 0 }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </template>
@@ -473,8 +578,9 @@ function barY(v: number) {
                   <td class="date-cell">{{ formatDate(u.createdAt) }}</td>
                   <td>
                     <div class="action-buttons">
+                      <button class="btn-action btn-info" @click="openDocsModal(u)">Voir docs</button>
                       <button class="btn-action btn-success" @click="toggleVerify(u)">✓ Valider</button>
-                      <button class="btn-action btn-danger" @click="toggleBlock(u)">✗ Refuser</button>
+                      <button class="btn-action btn-danger" @click="refuseTeacher(u)">✗ Refuser</button>
                     </div>
                   </td>
                 </tr>
@@ -484,6 +590,34 @@ function barY(v: number) {
         </div>
       </template>
     </main>
+
+    <!-- Documents Modal -->
+    <div v-if="selectedTeacher" class="modal-overlay" @click.self="closeDocsModal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">Documents de {{ selectedTeacher.nom }}</div>
+            <div class="modal-sub">{{ selectedTeacher.email }}</div>
+          </div>
+          <button class="modal-close" @click="closeDocsModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="docsLoading" class="docs-loading">… Chargement</div>
+          <div v-else-if="teacherDocs.length === 0" class="docs-empty">Aucun document uploadé</div>
+          <ul v-else class="doc-list">
+            <li v-for="doc in teacherDocs" :key="doc.id" class="doc-item">
+              <span class="doc-name">{{ doc.fileName }}</span>
+              <a :href="`http://localhost:8080/api/documents/${doc.id}`" target="_blank" class="btn-view-doc">Voir</a>
+            </li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-action btn-success" @click="toggleVerify(selectedTeacher!); closeDocsModal()">✓ Valider</button>
+          <button class="btn-action btn-danger" @click="refuseTeacher(selectedTeacher!); closeDocsModal()">Refuser</button>
+          <button class="btn-action btn-warn" @click="closeDocsModal">Annuler</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -836,6 +970,115 @@ function barY(v: number) {
 }
 .filter-btn:hover { background: #f9fafb; }
 
+.table-header { position: relative; }
+.filter-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 100;
+  min-width: 140px;
+  overflow: hidden;
+}
+.filter-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 9px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.filter-dropdown button:hover { background: #f3f4f6; }
+.filter-dropdown button.active { background: #eff6ff; color: #3b82f6; font-weight: 600; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.modal-box {
+  background: #fff;
+  border-radius: 14px;
+  width: 520px;
+  max-width: 94vw;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.modal-title { font-size: 16px; font-weight: 700; color: #111827; }
+.modal-sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.modal-close:hover { color: #374151; }
+.modal-body { padding: 20px 24px; min-height: 80px; }
+.docs-loading, .docs-empty { color: #9ca3af; font-size: 13px; }
+.doc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.doc-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+.doc-name { font-size: 13px; color: #374151; word-break: break-all; }
+.btn-view-doc {
+  padding: 4px 12px;
+  background: #eff6ff;
+  color: #3b82f6;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 12px;
+  transition: background 0.15s;
+}
+.btn-view-doc:hover { background: #dbeafe; }
+.modal-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 14px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+.btn-info { background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; }
+.text-muted { color: #9ca3af; font-size: 13px; }
+.course-title-cell { display: flex; flex-direction: column; gap: 2px; }
+.course-title { font-size: 13px; font-weight: 600; color: #111827; }
+.course-desc { font-size: 11px; color: #9ca3af; }
+
 .badge-count {
   background: #fef3c7;
   color: #d97706;
@@ -910,6 +1153,7 @@ tbody tr:hover { background: #fafafa; }
 }
 .role-badge.etudiant { background: #eff6ff; color: #3b82f6; }
 .role-badge.enseignant { background: #ecfdf5; color: #10b981; }
+.role-badge.admin { background: #fef3c7; color: #d97706; }
 
 .status-badge {
   display: inline-flex;

@@ -1,0 +1,10 @@
+package com.incredilearn.incredilearn.repository;
+
+import com.incredilearn.incredilearn.model.UserDocument;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface UserDocumentRepository extends JpaRepository<UserDocument, Long> {
+    List<UserDocument> findByUserId(Long userId);
+    void deleteByUserId(Long userId);
+}

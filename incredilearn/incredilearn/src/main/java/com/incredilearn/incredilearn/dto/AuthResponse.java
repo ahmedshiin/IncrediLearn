@@ -7,6 +7,8 @@ public class AuthResponse {
     private String role;
     private String domain;
     private boolean verified;
+    private boolean pending;
+    private boolean blocked;
     private String message;
     
     // Constructeurs
@@ -68,7 +70,23 @@ public class AuthResponse {
     public void setVerified(boolean verified) {
         this.verified = verified;
     }
-    
+
+    public boolean isPending() {
+        return pending;
+    }
+
+    public void setPending(boolean pending) {
+        this.pending = pending;
+    }
+
+    public boolean isBlocked() {
+        return blocked;
+    }
+
+    public void setBlocked(boolean blocked) {
+        this.blocked = blocked;
+    }
+
     public String getMessage() {
         return message;
     }

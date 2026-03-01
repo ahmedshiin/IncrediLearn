@@ -1,4 +1,5 @@
 const ADMIN_API = 'http://localhost:8080/api/admin'
+const DOCS_API  = 'http://localhost:8080/api/documents'
 
 export interface AdminStats {
   totalUsers: number
@@ -17,6 +18,13 @@ export interface AdminUser {
   isBlocked: boolean
   createdAt: string
   courseCount: number
+}
+
+export interface DocMeta {
+  id: number
+  fileName: string
+  contentType: string
+  uploadedAt: string
 }
 
 export const adminService = {
@@ -46,5 +54,18 @@ export const adminService = {
       body: JSON.stringify({ blocked }),
     })
     return res.json()
+  },
+
+  async deleteUser(id: number): Promise<void> {
+    await fetch(`${ADMIN_API}/users/${id}`, { method: 'DELETE' })
+  },
+
+  async getUserDocuments(userId: number): Promise<DocMeta[]> {
+    const res = await fetch(`${DOCS_API}/user/${userId}`)
+    return res.json()
+  },
+
+  getDocumentUrl(docId: number): string {
+    return `${DOCS_API}/${docId}`
   },
 }
