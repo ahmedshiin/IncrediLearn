@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-IncredilearnApplication<incredilearn>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.incredilearn.incredilearn.IncredilearnApplication",
+            "projectName": "incredilearn",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

@@ -1,24 +1,146 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { computed } from 'vue'
+import { RouterView, RouterLink, useRoute } from 'vue-router'
+
+const route = useRoute()
+const showNavbar = computed(() => !['inscription','connexion'].includes(String(route.name)))
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <div id="app">
+    <!-- ── Navbar ── -->
+    <header class="navbar">
+      <div class="navbar-inner">
+        <!-- Logo -->
+        <RouterLink to="/" class="nav-logo">
+          <div class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white"/>
+              <path d="M2 12l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M2 17l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+          <span class="logo-text">
+            <span class="logo-incredi">Incredi</span><span class="logo-learn">Learn</span>
+          </span>
+        </RouterLink>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+        <!-- Nav links -->
+        <nav v-if="showNavbar" class="nav-links">
+          <RouterLink to="/" class="nav-link">Cours</RouterLink>
+          <RouterLink to="/tuteurs" class="nav-link">Tuteurs</RouterLink>
+          <RouterLink to="/about" class="nav-link">À propos</RouterLink>
+        </nav>
 
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
+        <!-- Auth -->
+        <div class="nav-auth">
+          <RouterLink to="/connexion" class="btn-connexion">Connexion</RouterLink>
+          <RouterLink to="/inscription" class="btn-inscrire">S'inscrire</RouterLink>
+        </div>
+      </div>
+    </header>
 
-  <RouterView />
+    <RouterView />
+  </div>
 </template>
+
+<style scoped>
+.navbar {
+  background: #ffffff;
+  border-bottom: 1px solid #E5E7EB;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar-inner {
+  width: 100%;
+  padding: 0 2rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+}
+
+/* Logo */
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: #10B981;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-text {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.logo-incredi { color: #111827; }
+.logo-learn   { color: #10B981; }
+
+/* Nav links */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.nav-link {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #374151;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.nav-link:hover {
+  color: #10B981;
+}
+
+/* Auth */
+.nav-auth {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.btn-connexion {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #374151;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.btn-connexion:hover { color: #10B981; }
+
+.btn-inscrire {
+  background: #10B981;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.btn-inscrire:hover { background: #059669; }
+</style>
 
 <style scoped>
 header {
@@ -36,24 +158,6 @@ nav {
   font-size: 12px;
   text-align: center;
   margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
 }
 
 @media (min-width: 1024px) {
