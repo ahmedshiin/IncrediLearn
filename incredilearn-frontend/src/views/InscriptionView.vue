@@ -1,14 +1,23 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter, useRoute } from 'vue-router'
+import { authService } from '@/services/authService'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
 
 const role        = ref<'etudiant' | 'enseignant'>('etudiant')
 const nom         = ref('')
 const email       = ref('')
 const password    = ref('')
+const domain      = ref('')
 const showPass    = ref(false)
 const dragging    = ref(false)
 const fichiers    = ref<File[]>([])
+const loading     = ref(false)
+const error       = ref('')
 
 function onDrop(e: DragEvent) {
   dragging.value = false
@@ -18,6 +27,46 @@ function onDrop(e: DragEvent) {
 function onFileInput(e: Event) {
   const files = (e.target as HTMLInputElement).files
   if (files) fichiers.value = [...fichiers.value, ...Array.from(files)]
+}
+
+async function handleRegister() {
+  if (!nom.value || !email.value || !password.value) {
+    error.value = 'Veuillez remplir tous les champs obligatoires'
+    return
+  }
+
+  if (role.value === 'enseignant' && !domain.value) {
+    error.value = 'Veuillez sélectionner votre domaine d\'expertise'
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    const response = await authService.register({
+      nom: nom.value,
+      email: email.value,
+      password: password.value,
+      role: role.value,
+      domain: domain.value || undefined
+    })
+
+    if (response.id) {
+      // Mettre à jour le store
+      authStore.setUser(response)
+      // Rediriger vers la page d'origine ou la page d'accueil
+      const redirect = route.query.redirect as string || '/'
+      router.push(redirect)
+    } else {
+      error.value = response.message || 'Erreur lors de l\'inscription'
+    }
+  } catch (err) {
+    error.value = 'Erreur de connexion au serveur'
+    console.error(err)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -78,17 +127,22 @@ function onFileInput(e: Event) {
       </div>
 
       <!-- Form -->
-      <form @submit.prevent class="auth-form">
+      <form @submit.prevent="handleRegister" class="auth-form">
+        <!-- Message d'erreur -->
+        <div v-if="error" class="error-message">
+          {{ error }}
+        </div>
+        
         <!-- Nom complet -->
         <div class="field">
           <label class="field-label">Nom complet</label>
-          <input v-model="nom" type="text" class="field-input" placeholder="Votre nom" />
+          <input v-model="nom" type="text" class="field-input" placeholder="Votre nom" required />
         </div>
 
         <!-- Email -->
         <div class="field">
           <label class="field-label">Adresse email</label>
-          <input v-model="email" type="email" class="field-input" placeholder="votre@email.com" />
+          <input v-model="email" type="email" class="field-input" placeholder="votre@email.com" required />
         </div>
 
         <!-- Mot de passe -->
@@ -100,6 +154,7 @@ function onFileInput(e: Event) {
               :type="showPass ? 'text' : 'password'"
               class="field-input pass-input"
               placeholder="••••••••"
+              required
             />
             <button type="button" class="pass-toggle" @click="showPass = !showPass" aria-label="Afficher/masquer">
               <!-- Eye open -->
@@ -121,6 +176,29 @@ function onFileInput(e: Event) {
 
         <!-- Justificatifs – enseignant uniquement -->
         <div v-if="role === 'enseignant'" class="field">
+          <!-- Domaine d'expertise -->
+          <div class="field">
+            <label class="field-label">Domaine d'expertise</label>
+            <select v-model="domain" class="field-input">
+              <option value="" disabled>Sélectionnez votre domaine</option>
+              <option value="informatique">Informatique & Programmation</option>
+              <option value="mathematiques">Mathématiques</option>
+              <option value="physique">Physique</option>
+              <option value="chimie">Chimie</option>
+              <option value="biologie">Biologie & Sciences naturelles</option>
+              <option value="langues">Langues étrangères</option>
+              <option value="litterature">Littérature & Français</option>
+              <option value="histoire">Histoire</option>
+              <option value="geographie">Géographie</option>
+              <option value="economie">Économie & Gestion</option>
+              <option value="arts">Arts & Design</option>
+              <option value="musique">Musique</option>
+              <option value="sport">Sport & EPS</option>
+              <option value="philosophie">Philosophie</option>
+              <option value="clown">Clown</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
           <label class="field-label">Justificatifs (diplôme, certificat)</label>
           <div
             class="dropzone"
@@ -146,7 +224,9 @@ function onFileInput(e: Event) {
         </div>
 
         <!-- Submit -->
-        <button type="submit" class="btn-submit">Créer mon compte</button>
+        <button type="submit" class="btn-submit" :disabled="loading">
+          {{ loading ? 'Création en cours...' : 'Créer mon compte' }}
+        </button>
       </form>
 
       <!-- Social divider -->
@@ -282,6 +362,17 @@ function onFileInput(e: Event) {
 
 /* ── Form ── */
 .auth-form { display: flex; flex-direction: column; gap: 1rem; }
+
+/* Error message */
+.error-message {
+  background: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  color: #DC2626;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  text-align: center;
+}
 
 .field { display: flex; flex-direction: column; gap: 0.35rem; }
 .field-label {
