@@ -21,6 +21,18 @@ public class DataInitializer {
         PasswordEncoder passwordEncoder
     ) {
         return args -> {
+            // Créer l'admin si inexistant (toujours vérifier)
+            if (!userRepository.existsByEmail("admin@incredilearn.com")) {
+                User admin = new User();
+                admin.setNom("Admin User");
+                admin.setEmail("admin@incredilearn.com");
+                admin.setPassword(passwordEncoder.encode("admin123"));
+                admin.setRole(Role.ADMIN);
+                admin.setVerified(true);
+                userRepository.save(admin);
+                System.out.println("✓ Compte admin créé : admin@incredilearn.com / admin123");
+            }
+
             // Vérifier si des données existent déjà
             if (courseRepository.count() > 0) {
                 return; // Les données sont déjà initialisées

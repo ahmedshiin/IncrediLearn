@@ -58,17 +58,26 @@ const router = createRouter({
       name: 'creer-cours',
       component: () => import('../views/CreateCourseView.vue'),
     },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('../views/AdminDashboardView.vue'),
+      meta: { requiresAuth: true, adminOnly: true },
+    },
   ],
 })
 
 // Navigation guard pour protéger les routes
 router.beforeEach((to, from, next) => {
   const isAuthenticated = authService.isAuthenticated()
+  const currentUser = authService.getCurrentUser()
   const requiresAuth = to.meta.requiresAuth
   const guestOnly = to.meta.guestOnly
+  const adminOnly = to.meta.adminOnly
 
-  // Si la route nécessite une authentification et l'utilisateur n'est pas connecté
-  if (requiresAuth && !isAuthenticated) {
+  if (adminOnly && currentUser?.role !== 'admin') {
+    next({ name: 'home' })
+  } else if (requiresAuth && !isAuthenticated) {
     next({
       name: 'connexion',
       query: { redirect: to.fullPath }, // Sauvegarder la page cible pour redirection après connexion

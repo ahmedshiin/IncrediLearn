@@ -11,6 +11,8 @@ export const useAuthStore = defineStore('auth', () => {
   
   const userRole = computed(() => user.value?.role || '')
 
+  const isAdmin = computed(() => user.value?.role === 'admin')
+
   function initAuth() {
     const savedUser = authService.getCurrentUser()
     if (savedUser) {
@@ -35,6 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     userFullName,
     userRole,
+    isAdmin,
     setUser,
     logout,
     initAuth,

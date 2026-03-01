@@ -32,9 +32,14 @@ async function handleLogin() {
     if (response.id) {
       // Mettre à jour le store
       authStore.setUser(response)
-      // Rediriger vers la page d'origine ou la page d'accueil
-      const redirect = route.query.redirect as string || '/'
-      router.push(redirect)
+      // Rediriger l'admin vers le tableau de bord admin
+      if (response.role === 'admin') {
+        router.push('/admin')
+      } else {
+        // Rediriger vers la page d'origine ou la page d'accueil
+        const redirect = route.query.redirect as string || '/'
+        router.push(redirect)
+      }
     } else {
       error.value = response.message || 'Erreur lors de la connexion'
     }
