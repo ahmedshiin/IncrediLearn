@@ -4,12 +4,13 @@ import { RouterView, RouterLink, useRoute } from 'vue-router'
 
 const route = useRoute()
 const showNavbar = computed(() => !['inscription','connexion'].includes(String(route.name)))
+const showHeader = computed(() => !['creer-cours'].includes(String(route.name)))
 </script>
 
 <template>
   <div id="app">
     <!-- ── Navbar ── -->
-    <header class="navbar">
+    <header v-if="showHeader" class="navbar">
       <div class="navbar-inner">
         <!-- Logo -->
         <RouterLink to="/" class="nav-logo">
@@ -34,6 +35,7 @@ const showNavbar = computed(() => !['inscription','connexion'].includes(String(r
 
         <!-- Auth -->
         <div class="nav-auth">
+          <RouterLink to="/creer-cours" class="btn-creer">Créer un cours</RouterLink>
           <RouterLink to="/connexion" class="btn-connexion">Connexion</RouterLink>
           <RouterLink to="/inscription" class="btn-inscrire">S'inscrire</RouterLink>
         </div>
@@ -117,6 +119,18 @@ const showNavbar = computed(() => !['inscription','connexion'].includes(String(r
   flex-shrink: 0;
   margin-left: auto;
 }
+
+.btn-creer {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #10B981;
+  padding: 0.4rem 0.85rem;
+  border-radius: 7px;
+  border: 1.5px solid #D1FAE5;
+  background: #F0FDF4;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-creer:hover { background: #D1FAE5; border-color: #A7F3D0; }
 
 .btn-connexion {
   font-size: 0.95rem;

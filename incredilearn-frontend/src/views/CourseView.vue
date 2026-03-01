@@ -5,7 +5,6 @@ import { useRoute, RouterLink } from 'vue-router'
 const route = useRoute()
 const courseId = Number(route.params.id)
 
-/* ── Course data (same as HomeView) ── */
 const allCourses = [
   {
     id: 1,
@@ -14,9 +13,9 @@ const allCourses = [
     category: 'Programmation',
     image: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=900&h=500&fit=crop&q=80',
     lessons: [
-      { id: 1, title: 'Introduction et installation', duration: '15:32' },
-      { id: 2, title: 'Variables et types de données',  duration: '22:15' },
-      { id: 3, title: 'Structures conditionnelles',     duration: '18:45' },
+      { id: 1, title: 'Introduction et installation',    duration: '15:32', description: "Python est un langage de programmation interprété, de haut niveau et polyvalent. Il met l'accent sur la lisibilité du code avec son utilisation notable de l'indentation significative." },
+      { id: 2, title: 'Variables et types de données',   duration: '22:15', description: "En Python, les variables sont créées lors de l'assignation d'une valeur. Les types principaux incluent : int (entiers), float (décimaux), str (chaînes de caractères), bool (booléens), list, tuple, dict." },
+      { id: 3, title: 'Structures conditionnelles',      duration: '18:45', description: "Les structures conditionnelles (if, elif, else) permettent d'exécuter différents blocs de code selon les conditions. Python utilise l'indentation pour délimiter ces blocs." },
     ],
     resources: [
       { name: 'Introduction à Python - Guide complet', type: 'PDF', size: '2.4 MB' },
@@ -29,9 +28,9 @@ const allCourses = [
     category: 'Design',
     image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=900&h=500&fit=crop&q=80',
     lessons: [
-      { id: 1, title: 'Introduction au Design Thinking',  duration: '12:00' },
-      { id: 2, title: 'Principes de UI',                  duration: '18:30' },
-      { id: 3, title: 'Prototypage avec Figma',           duration: '25:10' },
+      { id: 1, title: 'Introduction au Design Thinking',  duration: '12:00', description: "Le Design Thinking est une approche centrée sur l'utilisateur qui résout des problèmes complexes en suivant 5 étapes : empathie, définition, idéation, prototypage et test." },
+      { id: 2, title: 'Principes de UI',                  duration: '18:30', description: "Les principes fondamentaux de l'interface utilisateur incluent la hiérarchie visuelle, la cohérence, le contraste, l'alignement et l'espace négatif pour créer des designs lisibles." },
+      { id: 3, title: 'Prototypage avec Figma',           duration: '25:10', description: "Figma est un outil de design collaboratif. Cette leçon couvre la création de composants réutilisables, les auto-layouts et le prototypage interactif." },
     ],
     resources: [
       { name: 'UI Kit Complet', type: 'PDF', size: '5.1 MB' },
@@ -44,9 +43,9 @@ const allCourses = [
     category: 'Marketing',
     image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=900&h=500&fit=crop&q=80',
     lessons: [
-      { id: 1, title: 'Stratégie de contenu',   duration: '14:00' },
-      { id: 2, title: 'SEO & SEM',              duration: '20:00' },
-      { id: 3, title: 'Réseaux sociaux',        duration: '16:45' },
+      { id: 1, title: 'Stratégie de contenu',   duration: '14:00', description: "Une stratégie de contenu efficace définit les objectifs, le public cible, les types de contenu et les canaux de distribution pour maximiser l'engagement et la conversion." },
+      { id: 2, title: 'SEO & SEM',              duration: '20:00', description: "Le SEO (référencement naturel) améliore la visibilité organique tandis que le SEM (référencement payant) utilise les annonces Google Ads pour attirer du trafic qualifié." },
+      { id: 3, title: 'Réseaux sociaux',        duration: '16:45', description: "Maîtrisez les algorithmes des plateformes sociales, la création de contenus viraux, la gestion de communauté et l'analyse des métriques de performance." },
     ],
     resources: [
       { name: 'Guide Marketing Digital', type: 'PDF', size: '3.2 MB' },
@@ -59,9 +58,9 @@ const allCourses = [
     category: 'Bureautique',
     image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=900&h=500&fit=crop&q=80',
     lessons: [
-      { id: 1, title: 'Formules avancées',         duration: '18:00' },
-      { id: 2, title: 'Tableaux croisés dynamiques', duration: '22:00' },
-      { id: 3, title: 'Macros & VBA',              duration: '30:00' },
+      { id: 1, title: 'Formules avancées',           duration: '18:00', description: "Apprenez les formules complexes : RECHERCHEV, INDEX/EQUIV, SI.CONDITIONS, SOMME.SI.ENS. Ces fonctions automatisent les calculs et transforment vos feuilles de calcul en outils puissants." },
+      { id: 2, title: 'Tableaux croisés dynamiques', duration: '22:00', description: "Les TCD permettent d'analyser rapidement de grandes quantités de données. Apprenez à les créer, les filtrer, les grouper et à créer des graphiques croisés dynamiques." },
+      { id: 3, title: 'Macros & VBA',                duration: '30:00', description: "Le VBA (Visual Basic for Applications) permet d'automatiser des tâches répétitives dans Excel. Cette leçon couvre l'enregistrement de macros et les bases de la programmation VBA." },
     ],
     resources: [
       { name: 'Fichiers Excel exercices', type: 'PDF', size: '1.8 MB' },
@@ -74,9 +73,9 @@ const allCourses = [
     category: 'Programmation',
     image: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=900&h=500&fit=crop&q=80',
     lessons: [
-      { id: 1, title: 'Introduction au Machine Learning', duration: '20:00' },
-      { id: 2, title: 'Réseaux de neurones',              duration: '25:00' },
-      { id: 3, title: 'Entraîner un modèle',              duration: '30:00' },
+      { id: 1, title: 'Introduction au Machine Learning', duration: '20:00', description: "Le Machine Learning permet aux ordinateurs d'apprendre sans être explicitement programmés. Découvrez les types d'apprentissage : supervisé, non supervisé et par renforcement." },
+      { id: 2, title: 'Réseaux de neurones',              duration: '25:00', description: "Les réseaux de neurones artificiels s'inspirent du cerveau humain. Apprenez les couches (input, hidden, output), les fonctions d'activation et la rétropropagation." },
+      { id: 3, title: 'Entraîner un modèle',              duration: '30:00', description: "L'entraînement d'un modèle TensorFlow implique la préparation des données, la définition de l'architecture, la compilation avec un optimiseur et l'évaluation des performances." },
     ],
     resources: [
       { name: 'Guide TensorFlow', type: 'PDF', size: '4.0 MB' },
@@ -89,9 +88,9 @@ const allCourses = [
     category: 'Programmation',
     image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=900&h=500&fit=crop&q=80',
     lessons: [
-      { id: 1, title: 'Composants & Props',  duration: '15:00' },
-      { id: 2, title: 'State & Hooks',       duration: '20:00' },
-      { id: 3, title: 'React Router',        duration: '18:00' },
+      { id: 1, title: 'Composants & Props',  duration: '15:00', description: "React est basé sur des composants réutilisables. Les props permettent de passer des données du composant parent vers l'enfant, favorisant la composition et la réutilisabilité." },
+      { id: 2, title: 'State & Hooks',       duration: '20:00', description: "Les hooks React (useState, useEffect, useContext) permettent d'ajouter des fonctionnalités comme l'état local et les effets de bord dans les composants fonctionnels." },
+      { id: 3, title: 'React Router',        duration: '18:00', description: "React Router gère la navigation côté client. Apprenez à configurer les routes, utiliser les paramètres d'URL et protéger les routes avec l'authentification." },
     ],
     resources: [
       { name: 'React Cheat Sheet', type: 'PDF', size: '1.5 MB' },
@@ -104,9 +103,9 @@ const allCourses = [
     category: 'Art',
     image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=900&h=500&fit=crop&q=80',
     lessons: [
-      { id: 1, title: 'Composition & Cadrage',  duration: '12:00' },
-      { id: 2, title: 'Lumière & Exposition',   duration: '14:00' },
-      { id: 3, title: 'Retouche Lightroom',     duration: '20:00' },
+      { id: 1, title: 'Composition & Cadrage',  duration: '12:00', description: "Maîtrisez la règle des tiers, les lignes directrices, le cadrage naturel et la symétrie pour créer des compositions visuellement équilibrées et attractives." },
+      { id: 2, title: 'Lumière & Exposition',   duration: '14:00', description: "Comprenez le triangle d'exposition (ISO, vitesse, ouverture) et apprenez à exploiter la lumière naturelle et artificielle pour obtenir des photos parfaitement exposées." },
+      { id: 3, title: 'Retouche Lightroom',     duration: '20:00', description: "Adobe Lightroom est l'outil de référence pour la retouche photo. Découvrez les corrections de base, les courbes de tonalité, la colorimétrie et l'export professionnel." },
     ],
     resources: [
       { name: 'Guide Photo Créative', type: 'PDF', size: '2.9 MB' },
@@ -119,9 +118,9 @@ const allCourses = [
     category: 'Sécurité',
     image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=900&h=500&fit=crop&q=80',
     lessons: [
-      { id: 1, title: 'Introduction à la cybersécurité', duration: '16:00' },
-      { id: 2, title: 'Cryptographie',                   duration: '22:00' },
-      { id: 3, title: 'Ethical Hacking',                 duration: '28:00' },
+      { id: 1, title: 'Introduction à la cybersécurité', duration: '16:00', description: "La cybersécurité protège les systèmes informatiques contre les cybermenaces. Découvrez les types d'attaques (phishing, malware, DDoS) et les principes de défense en profondeur." },
+      { id: 2, title: 'Cryptographie',                   duration: '22:00', description: "La cryptographie garantit la confidentialité et l'intégrité des données. Apprenez le chiffrement symétrique (AES), asymétrique (RSA) et les fonctions de hachage (SHA-256)." },
+      { id: 3, title: 'Ethical Hacking',                 duration: '28:00', description: "Le test de pénétration éthique identifie les vulnérabilités avant les attaquants. Cette leçon couvre la reconnaissance, l'exploitation et le rapport des failles de sécurité." },
     ],
     resources: [
       { name: 'Guide Cybersécurité', type: 'PDF', size: '3.7 MB' },
@@ -132,7 +131,32 @@ const allCourses = [
 const course = computed(() => allCourses.find(c => c.id === courseId) ?? allCourses[0])
 
 const activeLesson  = ref(0)
-const activeTab     = ref<'resources' | 'discussion'>('resources')
+const activeTab     = ref<'resources' | 'summary' | 'discussion' | 'live'>('resources')
+const selectedSections = ref<number[]>([])
+const generatedSummary = ref('')
+const isGenerating = ref(false)
+
+function toggleSection(idx: number) {
+  const i = selectedSections.value.indexOf(idx)
+  if (i === -1) selectedSections.value.push(idx)
+  else selectedSections.value.splice(i, 1)
+}
+function selectAll() {
+  if (!course.value) return
+  if (selectedSections.value.length === course.value.lessons.length)
+    selectedSections.value = []
+  else
+    selectedSections.value = course.value.lessons.map((_, i) => i)
+}
+function generateSummary() {
+  if (selectedSections.value.length === 0) return
+  isGenerating.value = true
+  generatedSummary.value = ''
+  setTimeout(() => {
+    isGenerating.value = false
+    generatedSummary.value = `Ce résumé couvre ${selectedSections.value.length} section(s) du cours. Les leçons sélectionnées abordent les concepts fondamentaux et avancés du domaine, en progressant du général au spécifique. Chaque section renforce les notions précédentes et prépare aux applications pratiques.`
+  }, 1800)
+}
 const completedLessons = ref<number[]>([])
 
 const progressPct = computed(() =>
@@ -240,6 +264,19 @@ function toggleComplete(idx: number) {
           </button>
           <button
             class="tab-btn"
+            :class="{ 'tab-btn--active': activeTab === 'summary' }"
+            @click="activeTab = 'summary'"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Résumé IA
+          </button>
+          <button
+            class="tab-btn"
             :class="{ 'tab-btn--active': activeTab === 'discussion' }"
             @click="activeTab = 'discussion'"
           >
@@ -247,7 +284,22 @@ function toggleComplete(idx: number) {
               stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
-            Discussion
+            Questions
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ 'tab-btn--active': activeTab === 'live' }"
+            @click="activeTab = 'live'"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="2"/>
+              <path d="M16.24 7.76a6 6 0 0 1 0 8.49"/>
+              <path d="M7.76 7.76a6 6 0 0 0 0 8.49"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              <path d="M4.93 4.93a10 10 0 0 0 0 14.14"/>
+            </svg>
+            Session Live
           </button>
         </div>
 
@@ -277,9 +329,84 @@ function toggleComplete(idx: number) {
           </div>
         </div>
 
-        <!-- Discussion (placeholder) -->
-        <div v-else class="discussion-empty">
+        <!-- Résumé IA -->
+        <div v-else-if="activeTab === 'summary'" class="summary-panel">
+          <div class="summary-header">
+            <div class="summary-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <div>
+              <p class="summary-title">Résumé IA</p>
+              <p class="summary-sub">Générez un résumé synthétique du cours</p>
+            </div>
+          </div>
+
+          <div v-if="generatedSummary" class="summary-result">
+            <p>{{ generatedSummary }}</p>
+          </div>
+          <template v-else>
+            <div class="summary-select-header">
+              <span class="summary-select-label">Sélectionnez le contenu à résumer</span>
+              <button class="summary-select-all" @click="selectAll">
+                {{ selectedSections.length === course.lessons.length ? 'Tout désélectionner' : 'Tout sélectionner' }}
+              </button>
+            </div>
+
+            <div class="summary-items">
+              <label
+                v-for="(lesson, idx) in course.lessons"
+                :key="lesson.id"
+                class="summary-item"
+                :class="{ 'summary-item--checked': selectedSections.includes(idx) }"
+              >
+                <input
+                  type="checkbox"
+                  class="summary-checkbox"
+                  :checked="selectedSections.includes(idx)"
+                  @change="toggleSection(idx)"
+                />
+                <div class="summary-item-body">
+                  <p class="summary-item-title">{{ lesson.title }}</p>
+                  <p class="summary-item-desc">{{ lesson.description ?? 'Contenu de la leçon ' + (idx + 1) }}</p>
+                </div>
+              </label>
+            </div>
+
+            <p class="summary-count">{{ selectedSections.length }} section(s) sélectionnée(s)</p>
+          </template>
+
+          <button
+            class="summary-generate-btn"
+            :disabled="selectedSections.length === 0 || isGenerating"
+            @click="generateSummary"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              :class="{ 'spin': isGenerating }">
+              <path d="M12 2a10 10 0 0 1 10 10"/>
+              <polyline points="22 12 18 16 14 12"/>
+            </svg>
+            {{ isGenerating ? 'Génération en cours...' : 'Générer le résumé' }}
+          </button>
+        </div>
+
+        <!-- Discussion -->
+        <div v-else-if="activeTab === 'discussion'" class="discussion-empty">
           <p>Aucun commentaire pour le moment. Soyez le premier à participer !</p>
+        </div>
+
+        <!-- Session Live -->
+        <div v-else-if="activeTab === 'live'" class="live-panel">
+          <div class="live-banner">
+            <div class="live-dot"></div>
+            <span>Aucune session live programmée pour le moment</span>
+          </div>
+          <p class="live-desc">Les sessions live vous permettent d'interagir en temps réel avec votre instructeur. Revenez bientôt !</p>
         </div>
 
       </div>
@@ -552,6 +679,71 @@ function toggleComplete(idx: number) {
   color: #10B981;
   border-bottom-color: #10B981;
 }
+
+/* ── Summary ── */
+.summary-panel { display: flex; flex-direction: column; gap: 1rem; }
+.summary-header { display: flex; align-items: flex-start; gap: 0.75rem; }
+.summary-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: #ECFDF5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.summary-title { font-size: 0.9rem; font-weight: 700; color: #111827; margin: 0 0 2px; }
+.summary-sub   { font-size: 0.78rem; color: #9CA3AF; margin: 0; }
+.summary-select-header {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.82rem;
+}
+.summary-select-label { font-weight: 600; color: #374151; }
+.summary-select-all {
+  background: none; border: none; color: #10B981; font-size: 0.82rem;
+  font-weight: 500; cursor: pointer; padding: 0;
+}
+.summary-select-all:hover { text-decoration: underline; }
+.summary-items { display: flex; flex-direction: column; gap: 0.5rem; }
+.summary-item {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border: 1.5px solid #E5E7EB; border-radius: 10px;
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  background: #fff;
+}
+.summary-item--checked { border-color: #10B981; background: #ECFDF5; }
+.summary-checkbox { margin-top: 2px; accent-color: #10B981; flex-shrink: 0; }
+.summary-item-title { font-size: 0.85rem; font-weight: 600; color: #111827; margin: 0 0 2px; }
+.summary-item-desc  { font-size: 0.75rem; color: #6B7280; margin: 0; line-height: 1.4; }
+.summary-count { font-size: 0.78rem; color: #6B7280; margin: 0; }
+.summary-result {
+  background: #ECFDF5; border: 1.5px solid #A7F3D0; border-radius: 10px;
+  padding: 1rem 1.1rem;
+}
+.summary-result p { font-size: 0.875rem; color: #064E3B; line-height: 1.6; margin: 0; }
+.summary-generate-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  width: 100%; padding: 0.8rem; border-radius: 10px;
+  background: #10B981; color: #fff; border: none;
+  font-size: 0.9rem; font-weight: 700; cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  font-family: inherit;
+}
+.summary-generate-btn:hover:not(:disabled) { background: #059669; }
+.summary-generate-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+@keyframes spin-anim { to { transform: rotate(360deg); } }
+.spin { animation: spin-anim 1s linear infinite; }
+
+/* ── Live ── */
+.live-panel { display: flex; flex-direction: column; gap: 0.85rem; padding: 0.5rem 0; }
+.live-banner {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.75rem 1rem; border-radius: 10px;
+  background: #FFF7ED; border: 1.5px solid #FED7AA;
+  font-size: 0.875rem; font-weight: 600; color: #92400E;
+}
+.live-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #F97316; flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(249,115,22,0.25);
+}
+.live-desc { font-size: 0.82rem; color: #6B7280; margin: 0; line-height: 1.5; }
 
 /* ── Resources ── */
 .resources-list { display: flex; flex-direction: column; gap: 0.75rem; }
