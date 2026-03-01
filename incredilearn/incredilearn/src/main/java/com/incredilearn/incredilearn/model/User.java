@@ -49,6 +49,9 @@ public class User {
     @Column(name = "is_blocked")
     private boolean isBlocked = false;
     
+    @Column(name = "is_blocked")
+    private boolean isBlocked = false; // Pour bloquer des utilisateurs
+    
     @ManyToMany
     @JoinTable(
         name = "user_courses",
@@ -139,6 +142,14 @@ public class User {
         return isBlocked;
     }
 
+    public void setBlocked(boolean blocked) {
+        isBlocked = blocked;
+    }
+    
+    public boolean isBlocked() {
+        return isBlocked;
+    }
+    
     public void setBlocked(boolean blocked) {
         isBlocked = blocked;
     }
