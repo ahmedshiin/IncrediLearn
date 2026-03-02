@@ -22,11 +22,11 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**", "/api/documents/**").permitAll()
+                .requestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**", "/api/documents/**", "/api/messages/**", "/ws/**").permitAll()
                 .anyRequest().authenticated()
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**", "/api/documents/**")
+                .ignoringRequestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**", "/api/documents/**", "/api/messages/**", "/ws/**")
             )
             .headers(headers -> headers
                 .frameOptions(frame -> frame.sameOrigin())
