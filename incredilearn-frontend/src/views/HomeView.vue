@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
+import StarPolygon from '@/components/StarPolygon.vue'
 
 const searchQuery  = ref('')
 const selectedCat  = ref('Tous')
@@ -8,6 +9,42 @@ const selectedLvl  = ref('Tous les niveaux')
 
 const categories = ['Tous', 'Programmation', 'Design', 'Marketing', 'Bureautique', 'Business']
 const levels     = ['Tous les niveaux', 'Débutant', 'Intermédiaire', 'Avancé']
+const minRating = ref(0)
+const starDropdownOpen = ref(false)
+const dropdownRef = ref<HTMLElement | null>(null)
+
+const starOptions = [0, 3, 3.5, 4, 4.5, 5]
+
+function selectRating(value: number) {
+  minRating.value = value
+  starDropdownOpen.value = false
+}
+
+function getRatingLabel(rating: number) {
+  return rating === 0 ? "Toutes les notes" : `${rating} étoiles`
+}
+
+function handleClickOutside(event: MouseEvent) {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
+    starDropdownOpen.value = false
+  }
+}
+
+function resetFilters() {
+  searchQuery.value = ''
+  selectedCat.value = 'Tous'
+  selectedLvl.value = 'Tous les niveaux'
+  minRating.value = 0
+  starDropdownOpen.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 interface CourseItem {
   id: number
@@ -65,25 +102,68 @@ function mapCourse(c: any): CourseItem {
   }
 }
 
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")                 // Sépare les accents
+    .replace(/[\u0300-\u036f]/g, "")  // Supprime les accents
+    .trim()
+}
+
 onMounted(async () => {
   try {
     const res = await fetch('http://localhost:8080/api/courses')
     const data = await res.json()
     allCourses.value = data.map(mapCourse)
+    data.forEach(c => {
+      console.log(
+        `Titre: ${c.titre} | Auteur: ${c.enseignantNom} | Domaine: ${c.domain}`
+      )
+    })
   } catch (e) {
     console.error('Erreur chargement cours', e)
   }
 })
 
 const filteredCourses = computed(() => {
-  const q = searchQuery.value.toLowerCase()
+
+  const q = normalize(searchQuery.value)
+
   return allCourses.value.filter(c => {
-    const matchesSearch = !q ||
-      c.title.toLowerCase().includes(q) ||
-      c.instructor.toLowerCase().includes(q) ||
-      c.description.toLowerCase().includes(q)
-    const matchesLvl = selectedLvl.value === 'Tous les niveaux' || c.badge === selectedLvl.value
-    return matchesSearch && matchesLvl
+
+    // Texte searchable combiné
+    const searchableText = normalize(
+      [
+        c.title,
+        c.instructor,
+        c.description,
+        c.domain
+      ].join(" ")
+    )
+
+    // Recherche multi-mots (AND logique)
+    const matchesSearch = !q || (() => {
+      const words = q.split(/\s+/).filter(Boolean)
+      return words.every(word =>
+        searchableText.includes(word)
+      )
+    })()
+
+    // Niveau
+    const matchesLvl =
+      selectedLvl.value === 'Tous les niveaux' ||
+      c.badge === selectedLvl.value
+
+    // Catégorie
+    const matchesCat =
+      selectedCat.value === 'Tous' ||
+      normalize(c.domain).includes(normalize(selectedCat.value))
+
+    // Note minimale
+    const matchesRating =
+      c.rating >= minRating.value
+
+    return matchesSearch && matchesLvl && matchesCat && matchesRating
   })
 })
 
@@ -145,14 +225,38 @@ const recommendedCourses = computed(() => filteredCourses.value.slice(0, 4))
             </svg>
           </div>
 
+          <!-- Rating -->
+           <div class="search-divider"></div>
+          <div class="select-wrap rating-select" ref="dropdownRef">
+          
+          <div class="star-dropdown" @click="starDropdownOpen = !starDropdownOpen">
+            {{ getRatingLabel(minRating) }}
+            <svg class="select-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="#6B7280" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+
+          
+          <div v-if="starDropdownOpen" class="star-options">
+            <div v-for="value in starOptions" :key="value" class="option" @click="selectRating(value)">
+              <div class="stars-wrapper" style="display:flex; gap:2px;">
+                <StarPolygon
+                  v-for="i in 5"
+                  :key="i"
+                  :rating="Math.min(Math.max(value - i + 1, 0), 1)"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
           <!-- Filter button -->
           <div class="search-divider"></div>
-          <button class="filter-btn" aria-label="Filtres avancés">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="#6B7280" stroke-width="2" stroke-linecap="round">
-              <line x1="4" y1="6" x2="20" y2="6"/>
-              <line x1="8" y1="12" x2="16" y2="12"/>
-              <line x1="11" y1="18" x2="13" y2="18"/>
+          <button class="filter-btn" aria-label="Filtres avancés" @click="resetFilters">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
         </div>
@@ -616,6 +720,53 @@ const recommendedCourses = computed(() => filteredCourses.value.slice(0, 4))
   gap: 0.2rem;
 }
 .meta-dot { color: #D1D5DB; }
+
+.rating-select {
+  min-width: 150px;
+  position: relative;
+}
+
+.star-dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.arrow {
+  font-size: 0.7rem;
+  color: #6B7280;
+  margin-left: 0.25rem;
+}
+
+.star-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  margin-top: 2px;
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  min-width: 100px;
+  padding: 0.25rem 0;
+}
+
+.option {
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.option:hover {
+  background: #F3F4F6;
+}
 
 /* ── Responsive ── */
 @media (max-width: 1100px) {
