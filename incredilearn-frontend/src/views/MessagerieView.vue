@@ -22,6 +22,8 @@ const searchResults = ref<UserSearchResult[]>([])
 const showSearch = ref(false)
 const loading = ref(false)
 const messagesContainer = ref<HTMLElement | null>(null)
+const showDeleteModal = ref(false)
+const messageToDelete = ref<MessageDTO | null>(null)
 let stompClient: Client | null = null
 
 // Charger les conversations
@@ -255,19 +257,32 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 // Supprimer un message
-async function handleDeleteMessage(msg: MessageDTO) {
-  if (!confirm('Supprimer ce message ? Les deux participants verront "Message supprimé".')) return
+function handleDeleteMessage(msg: MessageDTO) {
+  messageToDelete.value = msg
+  showDeleteModal.value = true
+}
 
-  const updated = await messageService.deleteMessage(msg.id, userId.value)
+function cancelDelete() {
+  showDeleteModal.value = false
+  messageToDelete.value = null
+}
+
+async function confirmDelete() {
+  if (!messageToDelete.value) return
+
+  const updated = await messageService.deleteMessage(messageToDelete.value.id, userId.value)
 
   // Mettre à jour localement
-  const index = messages.value.findIndex((m) => m.id === msg.id)
+  const index = messages.value.findIndex((m) => m.id === messageToDelete.value!.id)
   if (index !== -1) {
     messages.value[index] = updated
   }
 
   // Mettre à jour l'aperçu si c'est le dernier message
   updateConversationPreview(updated)
+
+  showDeleteModal.value = false
+  messageToDelete.value = null
 }
 
 onMounted(async () => {
@@ -442,6 +457,26 @@ onUnmounted(() => {
         </template>
       </main>
     </div>
+
+    <!-- Modal de confirmation de suppression -->
+    <Teleport to="body">
+      <div v-if="showDeleteModal" class="modal-overlay" @click.self="cancelDelete">
+        <div class="modal-box">
+          <div class="modal-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          </div>
+          <h3 class="modal-title">Supprimer ce message ?</h3>
+          <p class="modal-text">Les deux participants verront « Message supprimé » à la place du contenu.</p>
+          <div class="modal-actions">
+            <button class="modal-btn modal-btn-cancel" @click="cancelDelete">Annuler</button>
+            <button class="modal-btn modal-btn-confirm" @click="confirmDelete">Supprimer</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -972,5 +1007,91 @@ onUnmounted(() => {
   .btn-back-mobile {
     display: block;
   }
+}
+
+/* Modal suppression */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-box {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 2rem;
+  width: 380px;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #FEE2E2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem;
+}
+
+.modal-text {
+  font-size: 0.88rem;
+  color: #6B7280;
+  margin: 0 0 1.5rem;
+  line-height: 1.45;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.modal-btn {
+  padding: 0.55rem 1.4rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s;
+}
+
+.modal-btn-cancel {
+  background: #F3F4F6;
+  color: #374151;
+}
+
+.modal-btn-cancel:hover {
+  background: #E5E7EB;
+}
+
+.modal-btn-confirm {
+  background: #DC2626;
+  color: #ffffff;
+}
+
+.modal-btn-confirm:hover {
+  background: #B91C1C;
 }
 </style>
