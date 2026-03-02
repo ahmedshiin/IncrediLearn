@@ -81,6 +81,7 @@ function onItemDragOver(e: DragEvent, idx: number) {
   if (draggedIdx.value === null || draggedIdx.value === idx) return
   const items = [...contentItems.value]
   const [moved] = items.splice(draggedIdx.value, 1)
+  if (!moved) return
   items.splice(idx, 0, moved)
   contentItems.value = items
   draggedIdx.value = idx

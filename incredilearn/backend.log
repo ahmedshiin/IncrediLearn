@@ -4278,3 +4278,2475 @@ Hibernate:
             on e1_1.id=e1_0.user_id 
     where
         e1_0.course_id=?
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.created_at,
+        c1_0.description,
+        c1_0.domain,
+        c1_0.duree_heures,
+        c1_0.enseignant_id,
+        c1_0.niveau,
+        c1_0.titre 
+    from
+        courses c1_0
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.created_at,
+        c1_0.description,
+        c1_0.domain,
+        c1_0.duree_heures,
+        c1_0.enseignant_id,
+        c1_0.niveau,
+        c1_0.titre 
+    from
+        courses c1_0
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.created_at,
+        c1_0.description,
+        c1_0.domain,
+        c1_0.duree_heures,
+        c1_0.enseignant_id,
+        c1_0.niveau,
+        c1_0.titre 
+    from
+        courses c1_0
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        c1_0.id,
+        c1_0.created_at,
+        c1_0.description,
+        c1_0.domain,
+        c1_0.duree_heures,
+        c1_0.enseignant_id,
+        c1_0.niveau,
+        c1_0.titre 
+    from
+        courses c1_0
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.domain,
+        u1_0.email,
+        u1_0.is_blocked,
+        u1_0.is_verified,
+        u1_0.nom,
+        u1_0.password,
+        u1_0.role 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?
+Hibernate: 
+    select
+        e1_0.course_id,
+        e1_1.id,
+        e1_1.created_at,
+        e1_1.domain,
+        e1_1.email,
+        e1_1.is_blocked,
+        e1_1.is_verified,
+        e1_1.nom,
+        e1_1.password,
+        e1_1.role 
+    from
+        user_courses e1_0 
+    join
+        users e1_1 
+            on e1_1.id=e1_0.user_id 
+    where
+        e1_0.course_id=?

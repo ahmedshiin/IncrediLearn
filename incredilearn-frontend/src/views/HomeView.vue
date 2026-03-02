@@ -53,7 +53,7 @@ const KEYWORD_IMAGES: Record<string, string> = {
 function getCourseImage(titre: string, domain: string): string {
   const text = ((titre || '') + ' ' + (domain || '')).toLowerCase()
   const key = Object.keys(KEYWORD_IMAGES).find(k => k !== 'default' && text.includes(k)) || 'default'
-  return KEYWORD_IMAGES[key]
+  return KEYWORD_IMAGES[key] as string
 }
 
 function getBadgeClass(niveau: string): string {
@@ -62,6 +62,7 @@ function getBadgeClass(niveau: string): string {
   return 'badge-blue'
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapCourse(c: any): CourseItem {
   return {
     id: c.id,
@@ -114,7 +115,7 @@ const recommendedCourses = computed(() => {
   const all = filteredCourses.value
   if (all.length <= 4) return all.slice(0, 4)
   // Prend indices [0, 4, 1, 5] — mélange des deux groupes
-  return [0, 4, 1, 5].map(i => all[i]).filter(Boolean)
+  return [0, 4, 1, 5].map(i => all[i]).filter((item): item is CourseItem => !!item)
 })
 </script>
 
@@ -617,6 +618,7 @@ const recommendedCourses = computed(() => {
   margin-bottom: 0.85rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
