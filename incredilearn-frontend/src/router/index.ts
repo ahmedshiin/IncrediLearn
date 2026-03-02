@@ -59,6 +59,12 @@ const router = createRouter({
       component: () => import('../views/CreateCourseView.vue'),
     },
     {
+      path: '/messagerie',
+      name: 'messagerie',
+      component: () => import('../views/MessagerieView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/admin',
       name: 'admin',
       component: () => import('../views/AdminDashboardView.vue'),

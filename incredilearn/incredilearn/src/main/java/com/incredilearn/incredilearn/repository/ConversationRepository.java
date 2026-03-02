@@ -1,0 +1,22 @@
+package com.incredilearn.incredilearn.repository;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.incredilearn.incredilearn.model.Conversation;
+import com.incredilearn.incredilearn.model.User;
+
+@Repository
+public interface ConversationRepository extends JpaRepository<Conversation, Long> {
+
+    @Query("SELECT c FROM Conversation c WHERE c.user1 = :user OR c.user2 = :user ORDER BY c.lastMessageAt DESC")
+    List<Conversation> findByUser(@Param("user") User user);
+
+    @Query("SELECT c FROM Conversation c WHERE (c.user1 = :user1 AND c.user2 = :user2) OR (c.user1 = :user2 AND c.user2 = :user1)")
+    Optional<Conversation> findByUsers(@Param("user1") User user1, @Param("user2") User user2);
+}
