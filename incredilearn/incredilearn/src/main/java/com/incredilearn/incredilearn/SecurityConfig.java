@@ -22,11 +22,11 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**").permitAll()
+                .requestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**", "/api/documents/**").permitAll()
                 .anyRequest().authenticated()
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**")
+                .ignoringRequestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**", "/api/documents/**")
             )
             .headers(headers -> headers
                 .frameOptions(frame -> frame.sameOrigin())
@@ -38,7 +38,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

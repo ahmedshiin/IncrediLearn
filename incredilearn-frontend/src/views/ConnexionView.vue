@@ -13,6 +13,8 @@ const password  = ref('')
 const showPass  = ref(false)
 const loading   = ref(false)
 const error     = ref('')
+const isPending = ref(false)
+const isBlocked = ref(false)
 
 async function handleLogin() {
   if (!email.value || !password.value) {
@@ -22,6 +24,8 @@ async function handleLogin() {
 
   loading.value = true
   error.value = ''
+  isPending.value = false
+  isBlocked.value = false
 
   try {
     const response = await authService.login({
@@ -41,6 +45,8 @@ async function handleLogin() {
         router.push(redirect)
       }
     } else {
+      isPending.value = !!response.pending
+      isBlocked.value = !!response.blocked
       error.value = response.message || 'Erreur lors de la connexion'
     }
   } catch (err) {
@@ -78,8 +84,8 @@ async function handleLogin() {
 
       <!-- Form -->
       <form @submit.prevent="handleLogin" class="auth-form">
-        <!-- Message d'erreur -->
-        <div v-if="error" class="error-message">
+        <!-- Message d'erreur / attente -->
+        <div v-if="error" :class="isBlocked ? 'blocked-message' : isPending ? 'pending-message' : 'error-message'">
           {{ error }}
         </div>
         
@@ -230,6 +236,29 @@ async function handleLogin() {
   background: #FEE2E2;
   border: 1px solid #FCA5A5;
   color: #DC2626;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Pending validation message */
+.blocked-message {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.pending-message {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
   padding: 0.75rem;
   border-radius: 8px;
   font-size: 0.85rem;

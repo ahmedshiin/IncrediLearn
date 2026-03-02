@@ -21,6 +21,8 @@ export interface AuthResponse {
   role?: string
   domain?: string
   verified?: boolean
+  pending?: boolean
+  blocked?: boolean
   message: string
 }
 
@@ -36,7 +38,7 @@ export const authService = {
     
     const data = await response.json()
     
-    if (response.ok && data.id) {
+    if (response.ok && data.id && !data.pending) {
       // Stocker les informations utilisateur dans localStorage
       localStorage.setItem('user', JSON.stringify(data))
     }
@@ -55,8 +57,8 @@ export const authService = {
     
     const data = await response.json()
     
-    if (response.ok && data.id) {
-      // Stocker les informations utilisateur dans localStorage
+    if (response.ok && data.id && !data.pending) {
+      // Stocker les informations utilisateur dans localStorage (pas pour les enseignants en attente)
       localStorage.setItem('user', JSON.stringify(data))
     }
     

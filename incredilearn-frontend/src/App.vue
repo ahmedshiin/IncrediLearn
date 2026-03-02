@@ -54,7 +54,7 @@ onUnmounted(() => {
         </RouterLink>
 
         <!-- Nav links -->
-        <nav v-if="showNavbar" class="nav-links">
+        <nav v-if="showNavbar && authStore.userRole !== 'admin'" class="nav-links">
           <RouterLink to="/" class="nav-link">Cours</RouterLink>
           <RouterLink to="/tuteurs" class="nav-link">Tuteurs</RouterLink>
           <RouterLink to="/about" class="nav-link">À propos</RouterLink>

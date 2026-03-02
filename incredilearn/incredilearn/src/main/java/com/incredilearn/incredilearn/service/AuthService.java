@@ -36,10 +36,11 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         
         // Définir le rôle
-        if ("enseignant".equalsIgnoreCase(request.getRole())) {
+        boolean isTeacher = "enseignant".equalsIgnoreCase(request.getRole());
+        if (isTeacher) {
             user.setRole(Role.ENSEIGNANT);
             user.setDomain(request.getDomain());
-            user.setVerified(false); // Les enseignants doivent être vérifiés
+            user.setVerified(false); // Les enseignants doivent être vérifiés par l'admin
         } else {
             user.setRole(Role.ETUDIANT);
             user.setVerified(true); // Les étudiants sont automatiquement vérifiés
@@ -49,13 +50,21 @@ public class AuthService {
         
         // Créer la réponse
         AuthResponse response = new AuthResponse();
-        response.setId(user.getId());
         response.setNom(user.getNom());
         response.setEmail(user.getEmail());
         response.setRole(user.getRole().name().toLowerCase());
         response.setDomain(user.getDomain());
         response.setVerified(user.isVerified());
-        response.setMessage("Inscription réussie");
+
+        if (isTeacher) {
+            // Inclure l'id pour l'upload de documents, mais pending=true empêche la connexion
+            response.setId(user.getId());
+            response.setPending(true);
+            response.setMessage("Votre demande a été envoyée. Un administrateur validera votre compte prochainement.");
+        } else {
+            response.setId(user.getId());
+            response.setMessage("Inscription réussie");
+        }
         
         return response;
     }
@@ -75,6 +84,22 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             AuthResponse response = new AuthResponse();
             response.setMessage("Email ou mot de passe incorrect");
+            return response;
+        }
+
+        // Bloquer les utilisateurs bloqués par l'admin
+        if (user.isBlocked()) {
+            AuthResponse response = new AuthResponse();
+            response.setBlocked(true);
+            response.setMessage("Votre compte a été bloqué pour mauvais comportement. Contactez l'administrateur.");
+            return response;
+        }
+
+        // Bloquer les enseignants non vérifiés
+        if (user.getRole() == Role.ENSEIGNANT && !user.isVerified()) {
+            AuthResponse response = new AuthResponse();
+            response.setPending(true);
+            response.setMessage("Votre compte est en attente de validation par un administrateur.");
             return response;
         }
         

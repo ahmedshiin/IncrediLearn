@@ -1,6 +1,7 @@
 package com.incredilearn.incredilearn.dto;
 
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class UserAdminDTO {
     private Long id;
@@ -8,7 +9,9 @@ public class UserAdminDTO {
     private String email;
     private String role;
     private String domain;
+    @JsonProperty("isVerified")
     private boolean isVerified;
+    @JsonProperty("isBlocked")
     private boolean isBlocked;
     private LocalDateTime createdAt;
     private long courseCount;

@@ -45,7 +45,7 @@ public class User {
     
     @Column(name = "is_verified")
     private boolean isVerified = false; // Pour valider les enseignants
-    
+
     @Column(name = "is_blocked")
     private boolean isBlocked = false; // Pour bloquer des utilisateurs
     
@@ -134,11 +134,11 @@ public class User {
     public void setVerified(boolean verified) {
         isVerified = verified;
     }
-    
+
     public boolean isBlocked() {
         return isBlocked;
     }
-    
+
     public void setBlocked(boolean blocked) {
         isBlocked = blocked;
     }

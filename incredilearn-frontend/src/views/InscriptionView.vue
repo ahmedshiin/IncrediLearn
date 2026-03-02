@@ -18,6 +18,7 @@ const dragging    = ref(false)
 const fichiers    = ref<File[]>([])
 const loading     = ref(false)
 const error       = ref('')
+const pendingValidation = ref(false)
 
 function onDrop(e: DragEvent) {
   dragging.value = false
@@ -40,6 +41,11 @@ async function handleRegister() {
     return
   }
 
+  if (role.value === 'enseignant' && fichiers.value.length === 0) {
+    error.value = 'Veuillez joindre au moins un justificatif (diplôme, certificat)'
+    return
+  }
+
   loading.value = true
   error.value = ''
 
@@ -52,7 +58,19 @@ async function handleRegister() {
       domain: domain.value || undefined
     })
 
-    if (response.id) {
+    if (response.pending) {
+      // Upload documents if any were selected
+      if (fichiers.value.length > 0 && response.id) {
+        const formData = new FormData()
+        fichiers.value.forEach(f => formData.append('files', f))
+        await fetch(`http://localhost:8080/api/documents/upload/${response.id}`, {
+          method: 'POST',
+          body: formData,
+        })
+      }
+      // Enseignant en attente de validation admin
+      pendingValidation.value = true
+    } else if (response.id) {
       // Mettre à jour le store
       authStore.setUser(response)
       // Rediriger vers la page d'origine ou la page d'accueil
@@ -126,8 +144,18 @@ async function handleRegister() {
         </button>
       </div>
 
+      <!-- Message en attente de validation -->
+      <div v-if="pendingValidation" class="pending-message">
+        <div class="pending-icon"></div>
+        <h3>Demande envoyée !</h3>
+        <p>Votre demande d’inscription en tant qu’instructeur a bien été reçue.<br>
+        Un administrateur examinera votre profil et validera votre compte prochainement.<br>
+        Vous recevrez accès dès la validation.</p>
+        <RouterLink to="/connexion" class="btn-back">Retour à la connexion</RouterLink>
+      </div>
+
       <!-- Form -->
-      <form @submit.prevent="handleRegister" class="auth-form">
+      <form v-else @submit.prevent="handleRegister" class="auth-form">
         <!-- Message d'erreur -->
         <div v-if="error" class="error-message">
           {{ error }}
@@ -199,10 +227,10 @@ async function handleRegister() {
               <option value="autre">Autre</option>
             </select>
           </div>
-          <label class="field-label">Justificatifs (diplôme, certificat)</label>
+          <label class="field-label">Justificatifs (diplôme, certificat) <span class="required-star">*</span></label>
           <div
             class="dropzone"
-            :class="{ 'dropzone--over': dragging }"
+            :class="{ 'dropzone--over': dragging, 'dropzone--error': error && fichiers.length === 0 }"
             @dragover.prevent="dragging = true"
             @dragleave.prevent="dragging = false"
             @drop.prevent="onDrop"
@@ -374,6 +402,44 @@ async function handleRegister() {
   text-align: center;
 }
 
+/* Pending validation message */
+.pending-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fffbeb;
+  border: 1.5px solid #fcd34d;
+  border-radius: 12px;
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+}
+.pending-icon { font-size: 2.5rem; }
+.pending-message h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0;
+}
+.pending-message p {
+  font-size: 0.875rem;
+  color: #78350f;
+  line-height: 1.6;
+  margin: 0;
+}
+.btn-back {
+  margin-top: 0.5rem;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.btn-back:hover { background: #d97706; }
+
 .field { display: flex; flex-direction: column; gap: 0.35rem; }
 .field-label {
   font-size: 0.85rem;
@@ -427,6 +493,14 @@ async function handleRegister() {
 .dropzone--over {
   border-color: #10B981;
   background: #f0fdf4;
+}
+.dropzone--error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+.required-star {
+  color: #ef4444;
+  margin-left: 2px;
 }
 .dz-main {
   font-size: 0.85rem;
