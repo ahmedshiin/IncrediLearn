@@ -51,6 +51,19 @@ public class CourseService {
         userRepository.save(user);
         return true;
     }
+
+    public boolean unenrollUserFromCourse(Long userId, Long courseId) {
+        User user = userRepository.findById(userId).orElse(null);
+        Course course = courseRepository.findById(courseId).orElse(null);
+
+        if (user == null || course == null) {
+            return false;
+        }
+
+        user.getCoursesInscrits().remove(course);
+        userRepository.save(user);
+        return true;
+    }
     
     private CourseDTO convertToDTO(Course course) {
         CourseDTO dto = new CourseDTO();

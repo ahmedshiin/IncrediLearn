@@ -115,8 +115,8 @@ const filteredCourses = computed(() => {
     <!-- Hero -->
     <section class="hero">
       <div class="hero-content">
-        <h1>Tous les cours</h1>
-        <p>Explorez notre catalogue complet de {{ allCourses.length }} formations</p>
+        <h1>Tous les <span class="hero-accent">cours</span></h1>
+        <p>Explorez notre catalogue complet de formations</p>
       </div>
     </section>
 
@@ -188,13 +188,13 @@ const filteredCourses = computed(() => {
 
 /* ── Hero ────────────────────────────────────────────────── */
 .hero {
-  background: linear-gradient(135deg, #6c46ff 0%, #a855f7 100%);
-  color: white;
+  background: linear-gradient(to bottom, #ecfdf5 0%, #f0fdf8 40%, #ffffff 100%);
   padding: 60px 24px 48px;
   text-align: center;
 }
-.hero h1 { font-size: 2.4rem; font-weight: 800; margin: 0 0 8px; }
-.hero p  { font-size: 1.1rem; opacity: .85; margin: 0; }
+.hero h1 { font-size: 2.4rem; font-weight: 800; margin: 0 0 8px; color: #111827; }
+.hero-accent { color: #10B981; }
+.hero p  { font-size: 1.1rem; color: #6B7280; margin: 0; }
 
 /* ── Filters ─────────────────────────────────────────────── */
 .filters-bar {
@@ -298,7 +298,7 @@ const filteredCourses = computed(() => {
 .avatar {
   width: 30px; height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6c46ff, #a855f7);
+  background: linear-gradient(135deg, #10B981, #34d399);
   color: white;
   display: flex; align-items: center; justify-content: center;
   font-size: .8rem; font-weight: 700;
@@ -318,7 +318,7 @@ const filteredCourses = computed(() => {
 .empty button {
   margin-top: 16px;
   padding: 10px 24px;
-  background: #6c46ff;
+  background: #10B981;
   color: white;
   border: none;
   border-radius: 10px;

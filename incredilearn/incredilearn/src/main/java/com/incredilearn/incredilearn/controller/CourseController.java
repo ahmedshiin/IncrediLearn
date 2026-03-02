@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,4 +46,12 @@ public class CourseController {
             return ResponseEntity.badRequest().body("Erreur lors de l'inscription");
         }
     }
-}
+    @DeleteMapping("/enroll/{userId}/{courseId}")
+    public ResponseEntity<String> unenrollFromCourse(@PathVariable Long userId, @PathVariable Long courseId) {
+        boolean success = courseService.unenrollUserFromCourse(userId, courseId);
+        if (success) {
+            return ResponseEntity.ok("D\u00e9sinscription r\u00e9ussie");
+        } else {
+            return ResponseEntity.badRequest().body("Erreur lors de la d\u00e9sinscription");
+        }
+    }}

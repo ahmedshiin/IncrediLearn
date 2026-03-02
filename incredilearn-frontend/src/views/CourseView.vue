@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const courseId = Number(route.params.id)
@@ -130,6 +131,74 @@ const allCourses = [
 
 const course = computed(() => allCourses.find(c => c.id === courseId) ?? allCourses[0])
 
+const authStore = useAuthStore()
+const isEnrolled   = ref(false)
+const enrollLoading = ref(false)
+const enrollMsg     = ref('')
+
+onMounted(async () => {
+  if (!authStore.user?.id) return
+  // Restore completed lessons from localStorage
+  const saved = localStorage.getItem(`incredilearn_lessons_${authStore.user.id}_${courseId}`)
+  if (saved) completedLessons.value = JSON.parse(saved)
+  try {
+    const res = await fetch(`http://localhost:8080/api/courses/user/${authStore.user.id}`)
+    if (res.ok) {
+      const enrolled: { id: number }[] = await res.json()
+      isEnrolled.value = enrolled.some(c => c.id === courseId)
+    }
+  } catch { /* silently ignore */ }
+})
+
+async function enroll() {
+  if (!authStore.user?.id || isEnrolled.value || enrollLoading.value) return
+  enrollLoading.value = true
+  try {
+    const res = await fetch(
+      `http://localhost:8080/api/courses/enroll/${authStore.user.id}/${courseId}`,
+      { method: 'POST' }
+    )
+    if (res.ok) {
+      isEnrolled.value = true
+      enrollMsg.value = 'Inscrit avec succès !'
+      setTimeout(() => { enrollMsg.value = '' }, 3000)
+    } else {
+      enrollMsg.value = 'Erreur lors de l\'inscription'
+      setTimeout(() => { enrollMsg.value = '' }, 3000)
+    }
+  } catch {
+    enrollMsg.value = 'Erreur de connexion'
+    setTimeout(() => { enrollMsg.value = '' }, 3000)
+  } finally {
+    enrollLoading.value = false
+  }
+}
+
+async function unenroll() {
+  if (!authStore.user?.id || !isEnrolled.value || enrollLoading.value) return
+  if (!confirm('Se désinscrire de ce cours ?')) return
+  enrollLoading.value = true
+  try {
+    const res = await fetch(
+      `http://localhost:8080/api/courses/enroll/${authStore.user.id}/${courseId}`,
+      { method: 'DELETE' }
+    )
+    if (res.ok) {
+      isEnrolled.value = false
+      enrollMsg.value = 'Désinscription effectuée'
+      setTimeout(() => { enrollMsg.value = '' }, 3000)
+    } else {
+      enrollMsg.value = 'Erreur lors de la désinscription'
+      setTimeout(() => { enrollMsg.value = '' }, 3000)
+    }
+  } catch {
+    enrollMsg.value = 'Erreur de connexion'
+    setTimeout(() => { enrollMsg.value = '' }, 3000)
+  } finally {
+    enrollLoading.value = false
+  }
+}
+
 const activeLesson  = ref(0)
 const activeTab     = ref<'resources' | 'summary' | 'discussion' | 'live'>('resources')
 const selectedSections = ref<number[]>([])
@@ -158,6 +227,14 @@ function generateSummary() {
   }, 1800)
 }
 const completedLessons = ref<number[]>([])
+
+watch(completedLessons, (val) => {
+  const userId = authStore.user?.id
+  if (!userId || !course.value) return
+  const pct = Math.round((val.length / course.value.lessons.length) * 100)
+  localStorage.setItem(`incredilearn_lessons_${userId}_${courseId}`, JSON.stringify(val))
+  localStorage.setItem(`incredilearn_progress_${userId}_${courseId}`, String(pct))
+}, { deep: true })
 
 const progressPct = computed(() =>
   course.value ? Math.round((completedLessons.value.length / course.value.lessons.length) * 100) : 0
@@ -225,7 +302,7 @@ function toggleComplete(idx: number) {
               <span class="time-label">0:00 / 0:10</span>
             </div>
             <div class="controls-right">
-              <span class="lesson-label-ctrl">{{ course.lessons[activeLesson].title }}</span>
+              <span class="lesson-label-ctrl">{{ course.lessons[activeLesson]?.title }}</span>
               <button class="ctrl-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
               </button>
@@ -236,16 +313,47 @@ function toggleComplete(idx: number) {
         <!-- Lesson title / meta -->
         <div class="lesson-meta">
           <div>
-            <h1 class="lesson-title">{{ course.lessons[activeLesson].title }}</h1>
+            <h1 class="lesson-title">{{ course.lessons[activeLesson]?.title }}</h1>
             <p class="lesson-instructor">{{ course.instructor }} • {{ course.category }}</p>
           </div>
-          <button class="fav-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-            Add to Favorites
-          </button>
+          <div class="enroll-wrap">
+            <span v-if="enrollMsg" class="enroll-msg" :class="{ 'enroll-msg--success': isEnrolled || enrollMsg.startsWith('D') }">{{ enrollMsg }}</span>
+            <button
+              v-if="!isEnrolled"
+              class="enroll-btn"
+              :disabled="enrollLoading"
+              @click="enroll"
+            >
+              <svg v-if="enrollLoading" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <line x1="19" y1="8" x2="19" y2="14"/>
+                <line x1="22" y1="11" x2="16" y2="11"/>
+              </svg>
+              {{ enrollLoading ? 'Inscription…' : "S'inscrire" }}
+            </button>
+            <button
+              v-else
+              class="enroll-btn enroll-btn--done"
+              :disabled="enrollLoading"
+              @click="unenroll"
+            >
+              <svg v-if="enrollLoading" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ enrollLoading ? 'En cours…' : 'Déjà inscrit — Se désinscrire' }}
+            </button>
+          </div>
         </div>
 
         <!-- Tabs -->
@@ -635,23 +743,40 @@ function toggleComplete(idx: number) {
   font-size: 0.82rem;
   color: #6B7280;
 }
-.fav-btn {
+
+/* ── Enroll button ── */
+.enroll-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.enroll-btn {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  background: none;
-  border: 1.5px solid #E5E7EB;
+  background: #10B981;
+  border: none;
   border-radius: 8px;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: #6B7280;
+  padding: 0.5rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: white;
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color 0.15s, color 0.15s;
-  flex-shrink: 0;
+  transition: background 0.15s, opacity 0.15s;
 }
-.fav-btn:hover { border-color: #10B981; color: #10B981; }
+.enroll-btn:hover:not(:disabled) { background: #059669; }
+.enroll-btn:disabled { opacity: 0.75; cursor: default; }
+.enroll-btn--done { background: #FEE2E2; color: #DC2626; border-color: #FECACA; }
+.enroll-btn--done:hover { background: #FCA5A5; border-color: #F87171; }
+.enroll-msg {
+  font-size: 0.78rem;
+  color: #EF4444;
+  font-weight: 500;
+}
+.enroll-msg--success { color: #10B981; }
 
 /* ── Tabs ── */
 .tabs-bar {
