@@ -30,6 +30,12 @@ const router = createRouter({
       meta: { requiresAuth: false, guestOnly: true }, // Seulement pour non-connectés
     },
     {
+      path: '/cours',
+      name: 'cours-liste',
+      component: () => import('../views/CoursesListView.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/cours/:id',
       name: 'cours',
       component: () => import('../views/CourseView.vue'),

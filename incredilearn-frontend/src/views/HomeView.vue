@@ -25,22 +25,35 @@ interface CourseItem {
 
 const allCourses = ref<CourseItem[]>([])
 
-const DOMAIN_IMAGES: Record<string, string> = {
-  'informatique': 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=420&h=220&fit=crop&q=80',
-  'programmation': 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=420&h=220&fit=crop&q=80',
-  'design': 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=420&h=220&fit=crop&q=80',
-  'marketing': 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=420&h=220&fit=crop&q=80',
-  'bureautique': 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=420&h=220&fit=crop&q=80',
-  'business': 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=420&h=220&fit=crop&q=80',
-  'mathematiques': 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=420&h=220&fit=crop&q=80',
-  'physique': 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=420&h=220&fit=crop&q=80',
-  'langues': 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=420&h=220&fit=crop&q=80',
-  'default': 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=420&h=220&fit=crop&q=80',
+// Specific Unsplash photos per topic keyword (title-first matching)
+const KEYWORD_IMAGES: Record<string, string> = {
+  'python':        'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=420&h=220&fit=crop',
+  'react':         'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=420&h=220&fit=crop',
+  'vue':           'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=420&h=220&fit=crop',
+  'javascript':    'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=420&h=220&fit=crop',
+  'spring':        'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=420&h=220&fit=crop',
+  'java':          'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=420&h=220&fit=crop',
+  'design':        'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=420&h=220&fit=crop',
+  'marketing':     'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=420&h=220&fit=crop',
+  'excel':         'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=420&h=220&fit=crop',
+  'bureautique':   'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=420&h=220&fit=crop',
+  'intelligence':  'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=420&h=220&fit=crop',
+  'tensorflow':    'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=420&h=220&fit=crop',
+  'machine':       'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=420&h=220&fit=crop',
+  'photographie':  'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=420&h=220&fit=crop',
+  'photo':         'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=420&h=220&fit=crop',
+  'cyber':         'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=420&h=220&fit=crop',
+  'securit':       'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=420&h=220&fit=crop',
+  'docker':        'https://images.unsplash.com/photo-1605745341112-85968b19335b?w=420&h=220&fit=crop',
+  'sql':           'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=420&h=220&fit=crop',
+  'angular':       'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=420&h=220&fit=crop',
+  'default':       'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=420&h=220&fit=crop',
 }
 
-function getCourseImage(domain: string): string {
-  const key = (domain || '').toLowerCase().split(' ')[0].split('&')[0].trim()
-  return DOMAIN_IMAGES[key] || DOMAIN_IMAGES['default']
+function getCourseImage(titre: string, domain: string): string {
+  const text = ((titre || '') + ' ' + (domain || '')).toLowerCase()
+  const key = Object.keys(KEYWORD_IMAGES).find(k => k !== 'default' && text.includes(k)) || 'default'
+  return KEYWORD_IMAGES[key]
 }
 
 function getBadgeClass(niveau: string): string {
@@ -60,7 +73,7 @@ function mapCourse(c: any): CourseItem {
     students: c.nombreEtudiants != null ? String(c.nombreEtudiants) : '0',
     badge: c.niveau || 'Débutant',
     badgeClass: getBadgeClass(c.niveau),
-    image: getCourseImage(c.domain),
+    image: getCourseImage(c.titre, c.domain),
     domain: c.domain || '',
   }
 }
@@ -87,9 +100,22 @@ const filteredCourses = computed(() => {
   })
 })
 
-const courses = computed(() => filteredCourses.value)
-const newCourses = computed(() => filteredCourses.value.slice(0, 4))
-const recommendedCourses = computed(() => filteredCourses.value.slice(0, 4))
+// Cours populaires : les 4 premiers
+const courses = computed(() => filteredCourses.value.slice(0, 4))
+
+// Nouveautés : les 4 suivants (différents des populaires)
+const newCourses = computed(() => {
+  const all = filteredCourses.value
+  return all.length > 4 ? all.slice(4, 8) : all.slice(0, 4)
+})
+
+// Recommandés : sélection alternée (un populaire, un nouveau, etc.)
+const recommendedCourses = computed(() => {
+  const all = filteredCourses.value
+  if (all.length <= 4) return all.slice(0, 4)
+  // Prend indices [0, 4, 1, 5] — mélange des deux groupes
+  return [0, 4, 1, 5].map(i => all[i]).filter(Boolean)
+})
 </script>
 
 <template>
@@ -176,7 +202,7 @@ const recommendedCourses = computed(() => filteredCourses.value.slice(0, 4))
               <p class="section-sub">Les cours les plus appréciés par notre communauté</p>
             </div>
           </div>
-          <a href="#" class="voir-tout">Voir tout &rsaquo;</a>
+          <RouterLink to="/cours" class="voir-tout">Voir tout &rsaquo;</RouterLink>
         </div>
 
         <!-- Cards grid -->
@@ -252,7 +278,7 @@ const recommendedCourses = computed(() => filteredCourses.value.slice(0, 4))
               <p class="section-sub">Découvrez les derniers cours ajoutés</p>
             </div>
           </div>
-          <a href="#" class="voir-tout">Voir tout &rsaquo;</a>
+          <RouterLink to="/cours" class="voir-tout">Voir tout &rsaquo;</RouterLink>
         </div>
         <div class="courses-grid">
           <RouterLink v-for="course in newCourses" :key="course.id" :to="'/cours/' + course.id" class="card-link">
@@ -316,7 +342,7 @@ const recommendedCourses = computed(() => filteredCourses.value.slice(0, 4))
               <p class="section-sub">Basés sur les meilleures notes</p>
             </div>
           </div>
-          <a href="#" class="voir-tout">Voir tout &rsaquo;</a>
+          <RouterLink to="/cours" class="voir-tout">Voir tout &rsaquo;</RouterLink>
         </div>
         <div class="courses-grid">
           <RouterLink v-for="course in recommendedCourses" :key="course.id" :to="'/cours/' + course.id" class="card-link">
