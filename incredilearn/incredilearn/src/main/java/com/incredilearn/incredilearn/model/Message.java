@@ -40,6 +40,9 @@ public class Message {
     @Column(name = "is_read")
     private boolean isRead = false;
 
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
     // Constructeurs
     public Message() {
         this.sentAt = LocalDateTime.now();
@@ -74,4 +77,7 @@ public class Message {
 
     public boolean isRead() { return isRead; }
     public void setRead(boolean read) { isRead = read; }
+
+    public boolean isDeleted() { return isDeleted != null && isDeleted; }
+    public void setDeleted(boolean deleted) { isDeleted = deleted; }
 }

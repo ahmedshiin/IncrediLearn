@@ -12,6 +12,7 @@ public class MessageDTO {
     private String content;
     private LocalDateTime sentAt;
     private boolean read;
+    private boolean deleted;
 
     // Constructeurs
     public MessageDTO() {}
@@ -43,4 +44,7 @@ public class MessageDTO {
 
     public boolean isRead() { return read; }
     public void setRead(boolean read) { this.read = read; }
+
+    public boolean isDeleted() { return deleted; }
+    public void setDeleted(boolean deleted) { this.deleted = deleted; }
 }

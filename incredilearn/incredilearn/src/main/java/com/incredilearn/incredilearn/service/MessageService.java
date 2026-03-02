@@ -144,6 +144,26 @@ public class MessageService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Supprimer un message (remplacement du contenu).
+     */
+    @Transactional
+    public MessageDTO deleteMessage(Long messageId, Long userId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message introuvable"));
+
+        // Seul l'expéditeur peut supprimer son message
+        if (!message.getSender().getId().equals(userId)) {
+            throw new RuntimeException("Vous ne pouvez supprimer que vos propres messages");
+        }
+
+        message.setContent("Message supprimé par " + message.getSender().getNom());
+        message.setDeleted(true);
+        message = messageRepository.save(message);
+
+        return toMessageDTO(message);
+    }
+
     private MessageDTO toMessageDTO(Message message) {
         MessageDTO dto = new MessageDTO();
         dto.setId(message.getId());
@@ -155,6 +175,7 @@ public class MessageService {
         dto.setContent(message.getContent());
         dto.setSentAt(message.getSentAt());
         dto.setRead(message.isRead());
+        dto.setDeleted(message.isDeleted());
         return dto;
     }
 }

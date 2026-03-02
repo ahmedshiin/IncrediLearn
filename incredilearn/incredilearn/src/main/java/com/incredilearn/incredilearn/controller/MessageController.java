@@ -7,6 +7,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -90,6 +91,22 @@ public class MessageController {
         // Notifier aussi l'expéditeur (pour synchroniser les onglets)
         messagingTemplate.convertAndSend(
                 "/topic/messages/" + request.getSenderId(), message);
+
+        return ResponseEntity.ok(message);
+    }
+
+    /**
+     * Supprimer un message.
+     */
+    @DeleteMapping("/delete/{messageId}/{userId}")
+    public ResponseEntity<MessageDTO> deleteMessage(@PathVariable Long messageId, @PathVariable Long userId) {
+        MessageDTO message = messageService.deleteMessage(messageId, userId);
+
+        // Notifier les deux utilisateurs via WebSocket
+        messagingTemplate.convertAndSend(
+                "/topic/messages/" + message.getSenderId(), message);
+        messagingTemplate.convertAndSend(
+                "/topic/messages/" + message.getReceiverId(), message);
 
         return ResponseEntity.ok(message);
     }

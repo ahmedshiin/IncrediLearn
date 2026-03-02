@@ -15,6 +15,7 @@ export interface MessageDTO {
   content: string
   sentAt: string
   read: boolean
+  deleted: boolean
 }
 
 export interface ConversationDTO {
@@ -132,6 +133,16 @@ export const messageService = {
    */
   async getUnreadCount(userId: number): Promise<number> {
     const response = await fetch(`${API_URL}/unread/${userId}`)
+    return response.json()
+  },
+
+  /**
+   * Supprimer un message.
+   */
+  async deleteMessage(messageId: number, userId: number): Promise<MessageDTO> {
+    const response = await fetch(`${API_URL}/delete/${messageId}/${userId}`, {
+      method: 'DELETE',
+    })
     return response.json()
   },
 

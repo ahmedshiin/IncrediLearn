@@ -73,8 +73,11 @@ function onMessageReceived(message: MessageDTO) {
     selectedConversation.value &&
     message.conversationId === selectedConversation.value.id
   ) {
-    // Éviter les doublons
-    if (!messages.value.find((m) => m.id === message.id)) {
+    // Vérifier si c'est une mise à jour (suppression)
+    const existingIndex = messages.value.findIndex((m) => m.id === message.id)
+    if (existingIndex !== -1) {
+      messages.value[existingIndex] = message
+    } else {
       messages.value.push(message)
       nextTick(() => scrollToBottom())
     }
@@ -251,6 +254,22 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
+// Supprimer un message
+async function handleDeleteMessage(msg: MessageDTO) {
+  if (!confirm('Supprimer ce message ? Les deux participants verront "Message supprimé".')) return
+
+  const updated = await messageService.deleteMessage(msg.id, userId.value)
+
+  // Mettre à jour localement
+  const index = messages.value.findIndex((m) => m.id === msg.id)
+  if (index !== -1) {
+    messages.value[index] = updated
+  }
+
+  // Mettre à jour l'aperçu si c'est le dernier message
+  updateConversationPreview(updated)
+}
+
 onMounted(async () => {
   await loadConversations()
 
@@ -381,16 +400,27 @@ onUnmounted(() => {
                 { 'message-sent': msg.senderId === userId },
                 { 'message-received': msg.senderId !== userId },
               ]">
-                <div class="message-bubble">
+                <div :class="['message-bubble', { 'message-deleted': msg.deleted }]">
                   <p class="message-content">{{ msg.content }}</p>
                   <div class="message-meta">
                     <span class="message-time">{{
                       formatTime(msg.sentAt)
                     }}</span>
-                    <svg v-if="msg.senderId === userId && msg.read" width="14" height="14" viewBox="0 0 24 24"
+                    <svg v-if="msg.senderId === userId && msg.read && !msg.deleted" width="14" height="14" viewBox="0 0 24 24"
                       fill="none" stroke="#10B981" stroke-width="2.5">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
+                    <button
+                      v-if="msg.senderId === userId && !msg.deleted"
+                      @click="handleDeleteMessage(msg)"
+                      class="btn-delete-msg"
+                      title="Supprimer le message"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -828,6 +858,45 @@ onUnmounted(() => {
 .message-time {
   font-size: 0.7rem;
   opacity: 0.7;
+}
+
+/* Bouton supprimer message */
+.btn-delete-msg {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.message-bubble:hover .btn-delete-msg {
+  opacity: 1;
+}
+
+.btn-delete-msg:hover {
+  color: #FCA5A5;
+}
+
+/* Message supprimé */
+.message-deleted {
+  opacity: 0.7;
+}
+
+.message-sent .message-deleted {
+  background: #6B7280 !important;
+}
+
+.message-received .message-deleted {
+  background: #F3F4F6 !important;
+  border-color: #D1D5DB !important;
+}
+
+.message-deleted .message-content {
+  font-style: italic;
+  font-size: 0.85rem;
 }
 
 /* Zone de saisie */
