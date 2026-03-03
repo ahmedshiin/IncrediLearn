@@ -2,6 +2,20 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { RouterLink } from 'vue-router'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+
+// ── Custom modal state ──
+const modalVisible = ref(false)
+const modalMessage = ref('')
+let modalResolve: ((v: boolean) => void) | null = null
+
+function showConfirm(message: string): Promise<boolean> {
+  modalMessage.value = message
+  modalVisible.value = true
+  return new Promise(resolve => { modalResolve = resolve })
+}
+function onModalConfirm() { modalVisible.value = false; modalResolve?.(true); modalResolve = null }
+function onModalCancel()  { modalVisible.value = false; modalResolve?.(false); modalResolve = null }
 
 interface Course {
   id: number
@@ -123,7 +137,8 @@ function getProgressColor(pct: number) {
 
 async function unenroll(courseId: number) {
   if (!authStore.user?.id || unenrolling.value[courseId]) return
-  if (!confirm('Se désinscrire de ce cours ?')) return
+  const ok = await showConfirm('Se désinscrire de ce cours ?')
+  if (!ok) return
   unenrolling.value[courseId] = true
   try {
     const res = await fetch(
@@ -258,6 +273,18 @@ async function unenroll(courseId: number) {
       </div>
     </div>
   </div>
+
+  <ConfirmModal
+    :visible="modalVisible"
+    :message="modalMessage"
+    title="Désinscription"
+    variant="warning"
+    type="confirm"
+    confirm-text="Se désinscrire"
+    cancel-text="Annuler"
+    @confirm="onModalConfirm"
+    @cancel="onModalCancel"
+  />
 </template>
 
 <style scoped>

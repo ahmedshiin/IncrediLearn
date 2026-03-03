@@ -2,6 +2,45 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+
+// ── Custom modal state ──
+const modalVisible = ref(false)
+const modalMessage = ref('')
+const modalTitle = ref('')
+const modalVariant = ref<'danger' | 'warning' | 'info'>('info')
+const modalType = ref<'confirm' | 'alert'>('confirm')
+const modalConfirmText = ref('Confirmer')
+const modalCancelText = ref('Annuler')
+let modalResolve: ((v: boolean) => void) | null = null
+
+function showModal(opts: {
+  message: string
+  title?: string
+  variant?: 'danger' | 'warning' | 'info'
+  type?: 'confirm' | 'alert'
+  confirmText?: string
+  cancelText?: string
+}): Promise<boolean> {
+  modalMessage.value = opts.message
+  modalTitle.value = opts.title ?? ''
+  modalVariant.value = opts.variant ?? 'info'
+  modalType.value = opts.type ?? 'confirm'
+  modalConfirmText.value = opts.confirmText ?? 'Confirmer'
+  modalCancelText.value = opts.cancelText ?? 'Annuler'
+  modalVisible.value = true
+  return new Promise(resolve => { modalResolve = resolve })
+}
+function onModalConfirm() {
+  modalVisible.value = false
+  modalResolve?.(true)
+  modalResolve = null
+}
+function onModalCancel() {
+  modalVisible.value = false
+  modalResolve?.(false)
+  modalResolve = null
+}
 
 const route = useRoute()
 const courseId = Number(route.params.id)
@@ -328,7 +367,8 @@ async function enroll() {
 
 async function unenroll() {
   if (!authStore.user?.id || !isEnrolled.value || enrollLoading.value) return
-  if (!confirm('Se désinscrire de ce cours ?')) return
+  const ok = await showModal({ message: 'Se désinscrire de ce cours ?', title: 'Désinscription', variant: 'warning', confirmText: 'Se désinscrire' })
+  if (!ok) return
   enrollLoading.value = true
   try {
     const res = await fetch(
@@ -363,10 +403,287 @@ const activeLessonVideoUrl = computed(() => {
   if (vid) return 'http://localhost:8080' + vid.downloadUrl
   return null
 })
-const activeTab     = ref<'resources' | 'summary' | 'discussion' | 'live'>('resources')
+const activeTab     = ref<'resources' | 'summary' | 'discussion' | 'live' | 'quiz'>('resources')
 const selectedSections = ref<number[]>([])
 const generatedSummary = ref('')
 const isGenerating = ref(false)
+
+/* ── Quiz state ── */
+interface QuizOptionI { id: number; texte: string; correct?: boolean }
+interface QuizQuestionI { id: number; texte: string; sortOrder: number; options: QuizOptionI[] }
+interface QuizI { id: number; titre: string; description: string; courseId: number; nombreQuestions: number; createdAt: string; questions?: QuizQuestionI[] }
+interface QuizResult { total: number; correct: number; score: number; results: { questionId: number; correct: boolean; correctOptionId: number; selectedOptionId: number }[] }
+interface QuizAttemptI { id: number; quizId: number; quizTitre: string; userId: number; userName: string; totalQuestions: number; correctAnswers: number; score: number; completedAt: string }
+
+const quizzes = ref<QuizI[]>([])
+const activeQuiz = ref<QuizI | null>(null)
+const quizAnswers = ref<Record<number, number>>({})
+const quizResult = ref<QuizResult | null>(null)
+const quizLoading = ref(false)
+const quizSubmitting = ref(false)
+
+// Tentatives existantes (quizId → attempt)
+const quizAttempts = ref<Record<number, QuizAttemptI>>({})
+
+// Vue notes enseignant
+const showGrades = ref(false)
+const gradesQuiz = ref<QuizI | null>(null)
+const gradesData = ref<QuizAttemptI[]>([])
+const gradesLoading = ref(false)
+
+// Créer un quiz (enseignant)
+const showCreateQuiz = ref(false)
+const newQuiz = ref({ titre: '', description: '', questions: [{ texte: '', options: [{ texte: '', correct: false }, { texte: '', correct: false }] }] as { texte: string; options: { texte: string; correct: boolean }[] }[] })
+const creatingQuiz = ref(false)
+
+// Modifier un quiz (enseignant)
+const editingQuiz = ref(false)
+const editQuizData = ref({ titre: '', description: '', questions: [] as { texte: string; options: { texte: string; correct: boolean }[] }[] })
+const savingQuiz = ref(false)
+
+async function loadQuizzes() {
+  try {
+    const res = await fetch(`http://localhost:8080/api/quizzes/course/${courseId}`)
+    if (res.ok) {
+      quizzes.value = await res.json()
+      // Charger les tentatives de l'étudiant connecté
+      if (authStore.user?.id && authStore.userRole !== 'enseignant') {
+        const attempts: Record<number, QuizAttemptI> = {}
+        for (const q of quizzes.value) {
+          try {
+            const aRes = await fetch(`http://localhost:8080/api/quizzes/${q.id}/attempt/${authStore.user.id}`)
+            if (aRes.ok) {
+              attempts[q.id] = await aRes.json()
+            }
+          } catch { /* ignore */ }
+        }
+        quizAttempts.value = attempts
+      }
+    }
+  } catch { /* ignore */ }
+}
+
+async function openQuiz(quiz: QuizI) {
+  quizLoading.value = true
+  quizResult.value = null
+  quizAnswers.value = {}
+
+  // Si l'étudiant a déjà répondu → mode review (lecture seule avec corrections)
+  if (!isOwner.value && quizAttempts.value[quiz.id] && authStore.user?.id) {
+    try {
+      const res = await fetch(`http://localhost:8080/api/quizzes/${quiz.id}/review/${authStore.user.id}`)
+      if (res.ok) {
+        const review = await res.json()
+        activeQuiz.value = review.quiz
+        quizResult.value = {
+          total: review.attempt.totalQuestions,
+          correct: review.attempt.correctAnswers,
+          score: review.attempt.score,
+          results: review.answers,
+        }
+        const answers: Record<number, number> = {}
+        for (const a of review.answers) {
+          answers[a.questionId] = a.selectedOptionId
+        }
+        quizAnswers.value = answers
+      }
+    } catch { /* ignore */ }
+    quizLoading.value = false
+    return
+  }
+
+  try {
+    const url = isOwner.value
+      ? `http://localhost:8080/api/quizzes/${quiz.id}/teacher`
+      : `http://localhost:8080/api/quizzes/${quiz.id}`
+    const res = await fetch(url)
+    if (res.ok) activeQuiz.value = await res.json()
+  } catch { /* ignore */ }
+  quizLoading.value = false
+}
+
+function backToQuizList() {
+  activeQuiz.value = null
+  quizResult.value = null
+  quizAnswers.value = {}
+  showGrades.value = false
+  gradesQuiz.value = null
+  editingQuiz.value = false
+}
+
+async function submitQuiz() {
+  if (!activeQuiz.value || quizSubmitting.value || !authStore.user?.id) return
+  quizSubmitting.value = true
+  try {
+    const answers = Object.entries(quizAnswers.value).map(([qId, optId]) => ({
+      questionId: Number(qId),
+      selectedOptionId: optId,
+    }))
+    const res = await fetch(`http://localhost:8080/api/quizzes/${activeQuiz.value.id}/submit/${authStore.user.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(answers),
+    })
+    if (res.ok) {
+      quizResult.value = await res.json()
+      // Marquer comme tenté pour bloquer la relance
+      if (activeQuiz.value) {
+        quizAttempts.value[activeQuiz.value.id] = {
+          id: 0,
+          quizId: activeQuiz.value.id,
+          quizTitre: activeQuiz.value.titre,
+          userId: authStore.user.id,
+          userName: authStore.userFullName,
+          totalQuestions: quizResult.value!.total,
+          correctAnswers: quizResult.value!.correct,
+          score: quizResult.value!.score,
+          completedAt: new Date().toISOString(),
+        }
+      }
+    } else if (res.status === 409) {
+      await showModal({ message: 'Vous avez déjà répondu à ce quiz.', title: 'Quiz déjà complété', type: 'alert', variant: 'warning', confirmText: 'OK' })
+      backToQuizList()
+      await loadQuizzes()
+    }
+  } catch { /* ignore */ }
+  quizSubmitting.value = false
+}
+
+function addQuestion() {
+  newQuiz.value.questions.push({ texte: '', options: [{ texte: '', correct: false }, { texte: '', correct: false }] })
+}
+
+function removeQuestion(qi: number) {
+  if (newQuiz.value.questions.length <= 1) return
+  newQuiz.value.questions.splice(qi, 1)
+}
+
+function addOption(qi: number) {
+  const q = newQuiz.value.questions[qi]
+  if (!q || q.options.length >= 6) return
+  q.options.push({ texte: '', correct: false })
+}
+
+function removeOption(qi: number, oi: number) {
+  const q = newQuiz.value.questions[qi]
+  if (!q || q.options.length <= 2) return
+  q.options.splice(oi, 1)
+}
+
+async function createQuiz() {
+  if (creatingQuiz.value || !newQuiz.value.titre.trim()) return
+  creatingQuiz.value = true
+  try {
+    const body = {
+      titre: newQuiz.value.titre,
+      description: newQuiz.value.description,
+      courseId: courseId,
+      questions: newQuiz.value.questions,
+    }
+    const res = await fetch('http://localhost:8080/api/quizzes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (res.ok) {
+      showCreateQuiz.value = false
+      newQuiz.value = { titre: '', description: '', questions: [{ texte: '', options: [{ texte: '', correct: false }, { texte: '', correct: false }] }] }
+      await loadQuizzes()
+    }
+  } catch { /* ignore */ }
+  creatingQuiz.value = false
+}
+
+async function deleteQuiz(quizId: number) {
+  const ok = await showModal({ message: 'Supprimer ce quiz ? Cette action est irréversible.', title: 'Supprimer le quiz', variant: 'danger', confirmText: 'Supprimer' })
+  if (!ok) return
+  try {
+    await fetch(`http://localhost:8080/api/quizzes/${quizId}`, { method: 'DELETE' })
+    await loadQuizzes()
+  } catch { /* ignore */ }
+}
+
+// ── Notes enseignant ──
+async function openGrades(quiz: QuizI) {
+  gradesQuiz.value = quiz
+  showGrades.value = true
+  gradesLoading.value = true
+  try {
+    const res = await fetch(`http://localhost:8080/api/quizzes/${quiz.id}/attempts`)
+    if (res.ok) gradesData.value = await res.json()
+  } catch { /* ignore */ }
+  gradesLoading.value = false
+}
+
+function closeGrades() {
+  showGrades.value = false
+  gradesQuiz.value = null
+  gradesData.value = []
+}
+
+// ── Modifier un quiz ──
+function startEditQuiz() {
+  if (!activeQuiz.value) return
+  editQuizData.value = {
+    titre: activeQuiz.value.titre,
+    description: activeQuiz.value.description || '',
+    questions: (activeQuiz.value.questions || []).map(q => ({
+      texte: q.texte,
+      options: q.options.map(o => ({ texte: o.texte, correct: !!o.correct })),
+    })),
+  }
+  editingQuiz.value = true
+}
+
+function cancelEditQuiz() {
+  editingQuiz.value = false
+}
+
+function addEditQuestion() {
+  editQuizData.value.questions.push({ texte: '', options: [{ texte: '', correct: false }, { texte: '', correct: false }] })
+}
+
+function removeEditQuestion(qi: number) {
+  if (editQuizData.value.questions.length <= 1) return
+  editQuizData.value.questions.splice(qi, 1)
+}
+
+function addEditOption(qi: number) {
+  const q = editQuizData.value.questions[qi]
+  if (!q || q.options.length >= 6) return
+  q.options.push({ texte: '', correct: false })
+}
+
+function removeEditOption(qi: number, oi: number) {
+  const q = editQuizData.value.questions[qi]
+  if (!q || q.options.length <= 2) return
+  q.options.splice(oi, 1)
+}
+
+async function saveEditQuiz() {
+  if (!activeQuiz.value || savingQuiz.value || !editQuizData.value.titre.trim()) return
+  savingQuiz.value = true
+  try {
+    const body = {
+      titre: editQuizData.value.titre,
+      description: editQuizData.value.description,
+      courseId: courseId,
+      questions: editQuizData.value.questions,
+    }
+    const res = await fetch(`http://localhost:8080/api/quizzes/${activeQuiz.value.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      activeQuiz.value = updated
+      editingQuiz.value = false
+      await loadQuizzes()
+    }
+  } catch { /* ignore */ }
+  savingQuiz.value = false
+}
 
 function toggleSection(idx: number) {
   const i = selectedSections.value.indexOf(idx)
@@ -392,7 +709,7 @@ function generateSummary() {
 const completedLessons = ref<number[]>([])
 
 // ── Questions / Discussion ──────────────────────────────────
-interface Question {
+interface Reply {
   id: number
   userId: number
   userName: string
@@ -402,34 +719,56 @@ interface Question {
   edited?: boolean
 }
 
+interface Question {
+  id: number
+  userId: number
+  userName: string
+  role: string
+  text: string
+  timestamp: string
+  edited?: boolean
+  replies: Reply[]
+}
+
 const questions = ref<Question[]>([])
 const newQuestion = ref('')
+const replyingTo = ref<number | null>(null)
+const replyText = ref('')
+const editingReplyId = ref<number | null>(null)
+const editReplyText = ref('')
 
-function loadQuestions() {
-  const saved = localStorage.getItem(`incredilearn_questions_${courseId}`)
-  questions.value = saved ? JSON.parse(saved) : []
+async function loadQuestions() {
+  try {
+    const res = await fetch(`http://localhost:8080/api/questions/course/${courseId}`)
+    if (res.ok) questions.value = await res.json()
+  } catch { /* ignore */ }
 }
 
-function submitQuestion() {
+async function submitQuestion() {
   const text = newQuestion.value.trim()
-  if (!text || !isEnrolled.value || !authStore.user?.id) return
-  const q: Question = {
-    id: Date.now(),
-    userId: authStore.user.id as number,
-    userName: authStore.user.nom || 'Utilisateur',
-    role: authStore.user.role || 'etudiant',
-    text,
-    timestamp: new Date().toISOString(),
-  }
-  questions.value.unshift(q)
-  localStorage.setItem(`incredilearn_questions_${courseId}`, JSON.stringify(questions.value))
-  newQuestion.value = ''
+  if (!text || (!isEnrolled.value && !isOwner.value) || !authStore.user?.id) return
+  try {
+    const res = await fetch(`http://localhost:8080/api/questions/course/${courseId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: authStore.user.id, text }),
+    })
+    if (res.ok) {
+      const q = await res.json()
+      questions.value.unshift(q)
+      newQuestion.value = ''
+    }
+  } catch { /* ignore */ }
 }
 
-function deleteQuestion(id: number) {
-  questions.value = questions.value.filter(q => q.id !== id)
-  localStorage.setItem(`incredilearn_questions_${courseId}`, JSON.stringify(questions.value))
-  if (editingId.value === id) { editingId.value = null; editText.value = '' }
+async function deleteQuestion(id: number) {
+  const ok = await showModal({ message: 'Supprimer cette question et toutes ses réponses ?', title: 'Supprimer', variant: 'danger', confirmText: 'Supprimer' })
+  if (!ok) return
+  try {
+    await fetch(`http://localhost:8080/api/questions/${id}`, { method: 'DELETE' })
+    questions.value = questions.value.filter(q => q.id !== id)
+    if (editingId.value === id) { editingId.value = null; editText.value = '' }
+  } catch { /* ignore */ }
 }
 
 const editingId = ref<number | null>(null)
@@ -443,16 +782,84 @@ function cancelQuestionEdit() {
   editingId.value = null
   editText.value  = ''
 }
-function saveEdit(id: number) {
+async function saveEdit(id: number) {
   const text = editText.value.trim()
   if (!text) return
-  const q = questions.value.find(q => q.id === id)
-  if (q) {
-    q.text = text
-    q.edited = true
-    localStorage.setItem(`incredilearn_questions_${courseId}`, JSON.stringify(questions.value))
-  }
+  try {
+    const res = await fetch(`http://localhost:8080/api/questions/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+    if (res.ok) {
+      const q = questions.value.find(q => q.id === id)
+      if (q) { q.text = text; q.edited = true }
+    }
+  } catch { /* ignore */ }
   cancelQuestionEdit()
+}
+
+// ── Replies ──
+function startReply(questionId: number) {
+  replyingTo.value = questionId
+  replyText.value = ''
+}
+function cancelReply() {
+  replyingTo.value = null
+  replyText.value = ''
+}
+async function submitReply(questionId: number) {
+  const text = replyText.value.trim()
+  if (!text || !authStore.user?.id) return
+  try {
+    const res = await fetch(`http://localhost:8080/api/questions/${questionId}/replies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: authStore.user.id, text }),
+    })
+    if (res.ok) {
+      const reply = await res.json()
+      const q = questions.value.find(q => q.id === questionId)
+      if (q) q.replies.push(reply)
+      cancelReply()
+    }
+  } catch { /* ignore */ }
+}
+
+function startEditReply(r: Reply) {
+  editingReplyId.value = r.id
+  editReplyText.value = r.text
+}
+function cancelEditReply() {
+  editingReplyId.value = null
+  editReplyText.value = ''
+}
+async function saveEditReply(questionId: number, replyId: number) {
+  const text = editReplyText.value.trim()
+  if (!text) return
+  try {
+    const res = await fetch(`http://localhost:8080/api/questions/replies/${replyId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+    if (res.ok) {
+      const q = questions.value.find(q => q.id === questionId)
+      const r = q?.replies.find(r => r.id === replyId)
+      if (r) { r.text = text; r.edited = true }
+    }
+  } catch { /* ignore */ }
+  cancelEditReply()
+}
+
+async function deleteReply(questionId: number, replyId: number) {
+  const ok = await showModal({ message: 'Supprimer cette réponse ?', title: 'Supprimer', variant: 'danger', confirmText: 'Supprimer' })
+  if (!ok) return
+  try {
+    await fetch(`http://localhost:8080/api/questions/replies/${replyId}`, { method: 'DELETE' })
+    const q = questions.value.find(q => q.id === questionId)
+    if (q) q.replies = q.replies.filter(r => r.id !== replyId)
+  } catch { /* ignore */ }
 }
 
 function getRoleLabel(role: string) {
@@ -858,6 +1265,18 @@ async function uploadCoverImage(event: Event) {
           </button>
           <button
             class="tab-btn"
+            :class="{ 'tab-btn--active': activeTab === 'quiz' }"
+            @click="activeTab = 'quiz'; loadQuizzes()"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11l3 3L22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            Quiz
+          </button>
+          <button
+            class="tab-btn"
             :class="{ 'tab-btn--active': activeTab === 'live' }"
             @click="activeTab = 'live'"
           >
@@ -984,7 +1403,7 @@ async function uploadCoverImage(event: Event) {
         <div v-else-if="activeTab === 'discussion'" class="discussion-panel">
 
           <!-- Zone de saisie -->
-          <div v-if="isEnrolled" class="discussion-form">
+          <div v-if="isEnrolled || isOwner" class="discussion-form">
             <div class="discussion-form-header">
               <span class="discussion-avatar">{{ (authStore.user?.nom || 'U').charAt(0).toUpperCase() }}</span>
               <div class="discussion-form-meta">
@@ -1025,7 +1444,7 @@ async function uploadCoverImage(event: Event) {
           <!-- Liste des questions -->
           <div class="discussion-list">
             <div v-if="questions.length === 0" class="discussion-empty">
-              <p>Aucune question pour le moment. {{ isEnrolled ? 'Soyez le premier à participer !' : '' }}</p>
+              <p>Aucune question pour le moment. {{ (isEnrolled || isOwner) ? 'Soyez le premier à participer !' : '' }}</p>
             </div>
             <div v-for="q in questions" :key="q.id" class="discussion-item">
               <span class="discussion-avatar">{{ (q.userName || 'U').charAt(0).toUpperCase() }}</span>
@@ -1041,6 +1460,14 @@ async function uploadCoverImage(event: Event) {
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                       </svg>
                     </button>
+                    <button class="discussion-action-btn discussion-action-btn--delete" title="Supprimer" @click="deleteQuestion(q.id)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </template>
+                  <!-- Owner (prof) can also delete any question -->
+                  <template v-else-if="isOwner && authStore.user?.id !== q.userId && editingId !== q.id">
                     <button class="discussion-action-btn discussion-action-btn--delete" title="Supprimer" @click="deleteQuestion(q.id)">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -1072,8 +1499,331 @@ async function uploadCoverImage(event: Event) {
                 </template>
                 <!-- Mode lecture -->
                 <p v-else class="discussion-item-text">{{ q.text }}</p>
+
+                <!-- Replies section -->
+                <div class="discussion-replies" v-if="q.replies && q.replies.length > 0">
+                  <div v-for="r in q.replies" :key="r.id" class="discussion-reply">
+                    <span class="discussion-avatar discussion-avatar--sm">{{ (r.userName || 'U').charAt(0).toUpperCase() }}</span>
+                    <div class="discussion-reply-body">
+                      <div class="discussion-item-header">
+                        <span class="discussion-item-name">{{ r.userName }}</span>
+                        <span class="badge-role" :class="getRoleClass(r.role)">{{ getRoleLabel(r.role) }}</span>
+                        <span class="discussion-item-date">{{ formatDate(r.timestamp) }}<span v-if="r.edited" class="discussion-edited"> (modifié)</span></span>
+                        <template v-if="authStore.user?.id === r.userId && editingReplyId !== r.id">
+                          <button class="discussion-action-btn" title="Modifier" @click="startEditReply(r)">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                          </button>
+                          <button class="discussion-action-btn discussion-action-btn--delete" title="Supprimer" @click="deleteReply(q.id, r.id)">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                          </button>
+                        </template>
+                        <!-- Owner (prof) can also delete any reply -->
+                        <template v-else-if="isOwner && authStore.user?.id !== r.userId && editingReplyId !== r.id">
+                          <button class="discussion-action-btn discussion-action-btn--delete" title="Supprimer" @click="deleteReply(q.id, r.id)">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                          </button>
+                        </template>
+                      </div>
+                      <!-- Reply edit mode -->
+                      <template v-if="editingReplyId === r.id">
+                        <textarea
+                          v-model="editReplyText"
+                          class="discussion-textarea discussion-textarea--edit"
+                          rows="2"
+                          @keydown.ctrl.enter="saveEditReply(q.id, r.id)"
+                          @keydown.esc="cancelEditReply"
+                        />
+                        <div class="discussion-edit-actions">
+                          <span class="discussion-hint">Ctrl+Entrée · Échap</span>
+                          <div style="display:flex;gap:6px">
+                            <button class="discussion-cancel-btn" @click="cancelEditReply">Annuler</button>
+                            <button class="discussion-submit" :disabled="!editReplyText.trim()" @click="saveEditReply(q.id, r.id)">Sauvegarder</button>
+                          </div>
+                        </div>
+                      </template>
+                      <p v-else class="discussion-item-text">{{ r.text }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Reply button & form -->
+                <div class="discussion-reply-zone">
+                  <button v-if="(isEnrolled || isOwner) && replyingTo !== q.id" class="discussion-reply-btn" @click="startReply(q.id)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
+                    </svg>
+                    Répondre
+                  </button>
+                  <div v-if="replyingTo === q.id" class="discussion-reply-form">
+                    <textarea
+                      v-model="replyText"
+                      class="discussion-textarea discussion-textarea--reply"
+                      placeholder="Votre réponse..."
+                      rows="2"
+                      @keydown.ctrl.enter="submitReply(q.id)"
+                      @keydown.esc="cancelReply"
+                    />
+                    <div class="discussion-edit-actions">
+                      <span class="discussion-hint">Ctrl+Entrée pour envoyer · Échap pour annuler</span>
+                      <div style="display:flex;gap:6px">
+                        <button class="discussion-cancel-btn" @click="cancelReply">Annuler</button>
+                        <button class="discussion-submit" :disabled="!replyText.trim()" @click="submitReply(q.id)">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                          </svg>
+                          Répondre
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Quiz -->
+        <div v-else-if="activeTab === 'quiz'" class="quiz-panel">
+
+          <!-- Bouton créer (enseignant) -->
+          <div v-if="isOwner" class="quiz-teacher-bar">
+            <button class="quiz-create-btn" @click="showCreateQuiz = !showCreateQuiz">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              {{ showCreateQuiz ? 'Annuler' : 'Créer un quiz' }}
+            </button>
+          </div>
+
+          <!-- Formulaire de création -->
+          <div v-if="showCreateQuiz && isOwner" class="quiz-create-form">
+            <h3 class="quiz-create-title">Nouveau Quiz</h3>
+            <input v-model="newQuiz.titre" placeholder="Titre du quiz" class="quiz-input" />
+            <input v-model="newQuiz.description" placeholder="Description (optionnel)" class="quiz-input" />
+
+            <div v-for="(q, qi) in newQuiz.questions" :key="qi" class="quiz-question-form">
+              <div class="quiz-question-header">
+                <span class="quiz-question-num">Question {{ qi + 1 }}</span>
+                <button v-if="newQuiz.questions.length > 1" class="quiz-remove-btn" @click="removeQuestion(qi)" title="Supprimer">&times;</button>
+              </div>
+              <textarea v-model="q.texte" placeholder="Texte de la question" class="quiz-textarea" rows="2"></textarea>
+              <div v-for="(opt, oi) in q.options" :key="oi" class="quiz-option-form">
+                <label class="quiz-option-label" :class="{ 'quiz-option-label--correct': opt.correct }">
+                  <input type="radio" :name="'correct-' + qi" :checked="opt.correct" @change="q.options.forEach((o,i) => o.correct = i === oi)" />
+                  <input v-model="opt.texte" :placeholder="'Option ' + (oi + 1)" class="quiz-option-input" />
+                  <button v-if="q.options.length > 2" class="quiz-remove-opt" @click="removeOption(qi, oi)">&times;</button>
+                </label>
+              </div>
+              <button v-if="q.options.length < 6" class="quiz-add-opt-btn" @click="addOption(qi)">+ Ajouter une option</button>
+            </div>
+
+            <button class="quiz-add-q-btn" @click="addQuestion">+ Ajouter une question</button>
+            <button class="quiz-submit-btn" :disabled="creatingQuiz || !newQuiz.titre.trim()" @click="createQuiz">
+              {{ creatingQuiz ? 'Création…' : 'Enregistrer le quiz' }}
+            </button>
+          </div>
+
+          <!-- Vue notes enseignant -->
+          <div v-if="showGrades && isOwner" class="quiz-grades-panel">
+            <button class="quiz-back-btn" @click="closeGrades">&larr; Retour aux quiz</button>
+            <h3 class="quiz-grades-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              Notes — {{ gradesQuiz?.titre }}
+            </h3>
+            <div v-if="gradesLoading" class="quiz-grades-loading">Chargement…</div>
+            <div v-else-if="gradesData.length === 0" class="quiz-grades-empty">
+              <p>Aucun étudiant n'a encore répondu à ce quiz.</p>
+            </div>
+            <div v-else class="quiz-grades-table-wrap">
+              <table class="quiz-grades-table">
+                <thead>
+                  <tr>
+                    <th>Étudiant</th>
+                    <th>Score</th>
+                    <th>Bonnes réponses</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="a in gradesData" :key="a.id">
+                    <td class="quiz-grades-name">{{ a.userName }}</td>
+                    <td>
+                      <span class="quiz-grades-score" :class="{ 'quiz-grades-score--good': a.score >= 70, 'quiz-grades-score--bad': a.score < 50 }">
+                        {{ a.score }}%
+                      </span>
+                    </td>
+                    <td>{{ a.correctAnswers }} / {{ a.totalQuestions }}</td>
+                    <td class="quiz-grades-date">{{ new Date(a.completedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="quiz-grades-avg">
+                Moyenne : <strong>{{ (gradesData.reduce((s, a) => s + a.score, 0) / gradesData.length).toFixed(1) }}%</strong>
+                — {{ gradesData.length }} étudiant{{ gradesData.length > 1 ? 's' : '' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Passer un quiz -->
+          <div v-else-if="activeQuiz" class="quiz-take">
+            <button class="quiz-back-btn" @click="backToQuizList">&larr; Retour à la liste</button>
+            <h3 class="quiz-take-title">{{ activeQuiz.titre }}</h3>
+            <p v-if="activeQuiz.description" class="quiz-take-desc">{{ activeQuiz.description }}</p>
+
+            <!-- Avertissement essai unique -->
+            <div v-if="!quizResult && !isOwner" class="quiz-warning">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span>Attention : vous n'avez <strong>qu'un seul essai</strong> pour ce quiz. Une fois soumis, vous ne pourrez plus modifier vos réponses.</span>
+            </div>
+
+            <!-- Bannière enseignant : mode aperçu -->
+            <div v-if="isOwner && !editingQuiz" class="quiz-teacher-preview">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              <span>Aperçu enseignant — les bonnes réponses sont mises en évidence en vert.</span>
+              <button class="quiz-edit-btn" @click="startEditQuiz">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Modifier
+              </button>
+            </div>
+
+            <!-- Formulaire de modification -->
+            <div v-if="editingQuiz && isOwner" class="quiz-create-form">
+              <h3 class="quiz-create-title">Modifier le quiz</h3>
+              <input v-model="editQuizData.titre" placeholder="Titre du quiz" class="quiz-input" />
+              <input v-model="editQuizData.description" placeholder="Description (optionnel)" class="quiz-input" />
+
+              <div v-for="(q, qi) in editQuizData.questions" :key="qi" class="quiz-question-form">
+                <div class="quiz-question-header">
+                  <span class="quiz-question-num">Question {{ qi + 1 }}</span>
+                  <button v-if="editQuizData.questions.length > 1" class="quiz-remove-btn" @click="removeEditQuestion(qi)" title="Supprimer">&times;</button>
+                </div>
+                <textarea v-model="q.texte" placeholder="Texte de la question" class="quiz-textarea" rows="2"></textarea>
+                <div v-for="(opt, oi) in q.options" :key="oi" class="quiz-option-form">
+                  <label class="quiz-option-label" :class="{ 'quiz-option-label--correct': opt.correct }">
+                    <input type="radio" :name="'edit-correct-' + qi" :checked="opt.correct" @change="q.options.forEach((_o: { texte: string; correct: boolean },i: number) => _o.correct = i === oi)" />
+                    <input v-model="opt.texte" :placeholder="'Option ' + (oi + 1)" class="quiz-option-input" />
+                    <button v-if="q.options.length > 2" class="quiz-remove-opt" @click="removeEditOption(qi, oi)">&times;</button>
+                  </label>
+                </div>
+                <button v-if="q.options.length < 6" class="quiz-add-opt-btn" @click="addEditOption(qi)">+ Ajouter une option</button>
+              </div>
+
+              <button class="quiz-add-q-btn" @click="addEditQuestion">+ Ajouter une question</button>
+              <div class="quiz-edit-actions">
+                <button class="quiz-submit-btn" :disabled="savingQuiz || !editQuizData.titre.trim()" @click="saveEditQuiz">
+                  {{ savingQuiz ? 'Enregistrement…' : 'Enregistrer les modifications' }}
+                </button>
+                <button class="quiz-cancel-edit-btn" @click="cancelEditQuiz">Annuler</button>
+              </div>
+            </div>
+
+            <!-- Résultat -->
+            <div v-if="quizResult && !editingQuiz" class="quiz-result-card">
+              <div class="quiz-result-score" :class="{ 'quiz-result-score--good': quizResult.score >= 70 }">
+                {{ quizResult.score }}%
+              </div>
+              <p class="quiz-result-text">{{ quizResult.correct }} / {{ quizResult.total }} réponses correctes</p>
+              <p class="quiz-result-locked">Ce quiz est terminé. Vous ne pouvez pas le repasser.</p>
+            </div>
+
+            <!-- Questions -->
+            <div v-if="!editingQuiz" class="quiz-questions">
+              <div v-for="(q, qi) in activeQuiz.questions" :key="q.id" class="quiz-q-card" :class="{ 'quiz-q-card--correct': quizResult && (quizResult as QuizResult).results.find((r: QuizResult['results'][0]) => r.questionId === q.id)?.correct, 'quiz-q-card--wrong': quizResult && !(quizResult as QuizResult).results.find((r: QuizResult['results'][0]) => r.questionId === q.id)?.correct }">
+                <div class="quiz-q-header">
+                  <p class="quiz-q-text"><strong>{{ qi + 1 }}.</strong> {{ q.texte }}</p>
+                  <span v-if="quizResult" class="quiz-q-badge" :class="(quizResult as QuizResult).results.find((r: QuizResult['results'][0]) => r.questionId === q.id)?.correct ? 'quiz-q-badge--correct' : 'quiz-q-badge--wrong'">
+                    {{ (quizResult as QuizResult).results.find((r: QuizResult['results'][0]) => r.questionId === q.id)?.correct ? '✓ Correct' : '✗ Incorrect' }}
+                  </span>
+                </div>
+                <div class="quiz-q-options">
+                  <label
+                    v-for="opt in q.options"
+                    :key="opt.id"
+                    class="quiz-q-option"
+                    :class="{
+                      'quiz-q-option--selected': !quizResult && !isOwner && quizAnswers[q.id] === opt.id,
+                      'quiz-q-option--correct': (quizResult && (quizResult as QuizResult).results.find((r: QuizResult['results'][0]) => r.questionId === q.id)?.correctOptionId === opt.id) || (isOwner && !quizResult && opt.correct),
+                      'quiz-q-option--wrong': quizResult && (quizResult as QuizResult).results.find((r: QuizResult['results'][0]) => r.questionId === q.id)?.selectedOptionId === opt.id && (quizResult as QuizResult).results.find((r: QuizResult['results'][0]) => r.questionId === q.id)?.correctOptionId !== opt.id,
+                      'quiz-q-option--disabled': !!quizResult || isOwner,
+                    }"
+                  >
+                    <input type="radio" :name="'quiz-q-' + q.id" :value="opt.id" v-model="quizAnswers[q.id]" :disabled="!!quizResult || isOwner" />
+                    <span>{{ opt.texte }}</span>
+                    <svg v-if="quizResult && (quizResult as QuizResult).results.find((r: QuizResult['results'][0]) => r.questionId === q.id)?.correctOptionId === opt.id" class="quiz-q-icon quiz-q-icon--correct" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <svg v-if="quizResult && (quizResult as QuizResult).results.find((r: QuizResult['results'][0]) => r.questionId === q.id)?.selectedOptionId === opt.id && (quizResult as QuizResult).results.find((r: QuizResult['results'][0]) => r.questionId === q.id)?.correctOptionId !== opt.id" class="quiz-q-icon quiz-q-icon--wrong" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </label>
+                </div>
+              </div>
+              <button
+                v-if="!quizResult && !isOwner"
+                class="quiz-submit-answers-btn"
+                :disabled="quizSubmitting || Object.keys(quizAnswers).length < (activeQuiz.questions?.length || 0)"
+                @click="submitQuiz"
+              >
+                {{ quizSubmitting ? 'Envoi…' : 'Soumettre mes réponses' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Liste des quiz -->
+          <div v-else-if="quizzes.length > 0" class="quiz-list">
+            <div v-for="q in quizzes" :key="q.id" class="quiz-card" :class="!isOwner && quizAttempts[q.id] ? (quizAttempts[q.id]!.score < 50 ? 'quiz-card--fail' : quizAttempts[q.id]!.score <= 60 ? 'quiz-card--avg' : 'quiz-card--pass') : ''" @click="openQuiz(q)">
+              <div class="quiz-card-body">
+                <h4 class="quiz-card-title">{{ q.titre }}</h4>
+                <p v-if="q.description" class="quiz-card-desc">{{ q.description }}</p>
+                <span class="quiz-card-meta">{{ q.nombreQuestions }} question{{ q.nombreQuestions > 1 ? 's' : '' }}</span>
+                <!-- Badge tentative étudiant -->
+                <div v-if="!isOwner && quizAttempts[q.id]" class="quiz-card-attempted" :class="quizAttempts[q.id]!.score < 50 ? 'quiz-card-attempted--fail' : quizAttempts[q.id]!.score <= 60 ? 'quiz-card-attempted--avg' : 'quiz-card-attempted--pass'">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Répondu — <strong>{{ quizAttempts[q.id]?.score }}%</strong> · Cliquez pour revoir
+                </div>
+              </div>
+              <div class="quiz-card-actions">
+                <button v-if="isOwner" class="quiz-grades-btn" @click.stop="openGrades(q)" title="Voir les notes">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                  </svg>
+                </button>
+                <button v-if="isOwner" class="quiz-delete-btn" @click.stop="deleteQuiz(q.id)" title="Supprimer">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
+                </button>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="quiz-empty">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            <p>Aucun quiz disponible pour ce cours.</p>
+            <p v-if="isOwner" class="quiz-empty-hint">Cliquez sur « Créer un quiz » pour commencer.</p>
           </div>
         </div>
 
@@ -1282,6 +2032,18 @@ async function uploadCoverImage(event: Event) {
 
     </div><!-- /course-body -->
   </div>
+
+  <ConfirmModal
+    :visible="modalVisible"
+    :message="modalMessage"
+    :title="modalTitle"
+    :variant="modalVariant"
+    :type="modalType"
+    :confirm-text="modalConfirmText"
+    :cancel-text="modalCancelText"
+    @confirm="onModalConfirm"
+    @cancel="onModalCancel"
+  />
 </template>
 
 <style scoped>
@@ -1759,6 +2521,57 @@ async function uploadCoverImage(event: Event) {
 .discussion-cancel-btn:hover { background: #E2E8F0; }
 .discussion-edited { font-style: italic; color: #94a3b8; font-size: .72rem; }
 
+/* Replies */
+.discussion-replies {
+  margin-top: 12px;
+  padding-left: 8px;
+  border-left: 2.5px solid #E2E8F0;
+}
+.discussion-reply {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0 6px;
+}
+.discussion-reply + .discussion-reply {
+  border-top: 1px solid #F1F5F9;
+}
+.discussion-avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: .7rem;
+  flex-shrink: 0;
+}
+.discussion-reply-body {
+  flex: 1;
+  min-width: 0;
+}
+.discussion-reply-zone {
+  margin-top: 8px;
+}
+.discussion-reply-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: #6366F1;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background .15s;
+}
+.discussion-reply-btn:hover {
+  background: #EEF2FF;
+}
+.discussion-reply-form {
+  margin-top: 6px;
+}
+.discussion-textarea--reply {
+  font-size: .85rem;
+}
+
 
 /* Role badges */
 .badge-role {
@@ -2190,5 +3003,683 @@ async function uploadCoverImage(event: Event) {
   color: #9CA3AF;
   border: 1.5px dashed #E5E7EB;
   border-radius: 8px;
+}
+
+/* ════════ QUIZ ════════ */
+.quiz-panel {
+  padding: 0.5rem 0;
+}
+
+/* Teacher bar */
+.quiz-teacher-bar {
+  margin-bottom: 1rem;
+}
+.quiz-create-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quiz-create-btn:hover {
+  box-shadow: 0 4px 14px rgba(16,185,129,0.3);
+  transform: translateY(-1px);
+}
+
+/* Create form */
+.quiz-create-form {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.quiz-create-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.75rem;
+}
+.quiz-input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 0.6rem;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.quiz-input:focus {
+  outline: none;
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+}
+.quiz-textarea {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+.quiz-textarea:focus {
+  outline: none;
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+}
+.quiz-question-form {
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+.quiz-question-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.quiz-question-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #10B981;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.quiz-remove-btn {
+  background: none;
+  border: none;
+  color: #EF4444;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 0.3rem;
+  line-height: 1;
+}
+.quiz-option-form {
+  margin-top: 0.4rem;
+}
+.quiz-option-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.quiz-option-label--correct {
+  background: #ECFDF5;
+}
+.quiz-option-label input[type="radio"] {
+  accent-color: #10B981;
+}
+.quiz-option-input {
+  flex: 1;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.83rem;
+  font-family: inherit;
+}
+.quiz-option-input:focus {
+  outline: none;
+  border-color: #10B981;
+}
+.quiz-remove-opt {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 0.2rem;
+}
+.quiz-remove-opt:hover { color: #EF4444; }
+.quiz-add-opt-btn {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: #6B7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+.quiz-add-opt-btn:hover { color: #10B981; }
+.quiz-add-q-btn {
+  display: block;
+  width: 100%;
+  padding: 0.55rem;
+  border: 1.5px dashed #D1D5DB;
+  border-radius: 8px;
+  background: none;
+  color: #6B7280;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  transition: all 0.15s;
+}
+.quiz-add-q-btn:hover {
+  border-color: #10B981;
+  color: #10B981;
+}
+.quiz-submit-btn {
+  display: block;
+  width: 100%;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quiz-submit-btn:hover:not(:disabled) { box-shadow: 0 4px 14px rgba(16,185,129,0.3); }
+.quiz-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Quiz list cards */
+.quiz-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.quiz-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  background: #ffffff;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quiz-card:hover {
+  border-color: #10B981;
+  box-shadow: 0 2px 12px rgba(16,185,129,0.1);
+}
+.quiz-card-body { flex: 1; min-width: 0; }
+.quiz-card-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+.quiz-card-desc {
+  font-size: 0.8rem;
+  color: #6B7280;
+  margin: 0.2rem 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quiz-card-meta {
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  margin-top: 0.15rem;
+  display: inline-block;
+}
+.quiz-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #D1D5DB;
+  flex-shrink: 0;
+}
+.quiz-delete-btn {
+  background: none;
+  border: none;
+  color: #D1D5DB;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.quiz-delete-btn:hover {
+  color: #EF4444;
+  background: #FEF2F2;
+}
+
+/* Quiz empty */
+.quiz-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: #9CA3AF;
+  font-size: 0.88rem;
+}
+.quiz-empty svg { margin-bottom: 0.75rem; }
+.quiz-empty-hint { font-size: 0.8rem; margin-top: 0.3rem; }
+
+/* Taking a quiz */
+.quiz-take { }
+.quiz-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  color: #6B7280;
+  font-size: 0.82rem;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  padding: 0;
+  font-weight: 500;
+}
+.quiz-back-btn:hover { color: #10B981; }
+.quiz-take-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.25rem;
+}
+.quiz-take-desc {
+  font-size: 0.85rem;
+  color: #6B7280;
+  margin: 0 0 1rem;
+}
+.quiz-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.quiz-q-card {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 1rem;
+}
+.quiz-q-card--correct {
+  border-color: #A7F3D0;
+  background: #F0FDF4;
+}
+.quiz-q-card--wrong {
+  border-color: #FECACA;
+  background: #FEF2F2;
+}
+.quiz-q-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.quiz-q-text {
+  font-size: 0.9rem;
+  color: #111827;
+  margin: 0 0 0.65rem;
+  line-height: 1.5;
+  flex: 1;
+}
+.quiz-q-badge {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.quiz-q-badge--correct {
+  background: #D1FAE5;
+  color: #065F46;
+}
+.quiz-q-badge--wrong {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+.quiz-q-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.quiz-q-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.85rem;
+  color: #374151;
+  background: #fff;
+}
+.quiz-q-option:hover {
+  border-color: #D1D5DB;
+  background: #F9FAFB;
+}
+.quiz-q-option--selected {
+  border-color: #10B981;
+  background: #F0FDF4;
+  color: #065F46;
+}
+.quiz-q-option--correct {
+  border-color: #10B981 !important;
+  background: #ECFDF5 !important;
+}
+.quiz-q-option--wrong {
+  border-color: #EF4444 !important;
+  background: #FEF2F2 !important;
+  color: #991B1B !important;
+}
+.quiz-q-option input[type="radio"] {
+  accent-color: #10B981;
+}
+.quiz-q-option--disabled {
+  cursor: default;
+  pointer-events: none;
+}
+.quiz-q-icon {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.quiz-q-option--correct .quiz-q-icon--correct {
+  animation: quiz-pop 0.3s ease;
+}
+@keyframes quiz-pop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+.quiz-submit-answers-btn {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.65rem;
+  border: none;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quiz-submit-answers-btn:hover:not(:disabled) { box-shadow: 0 4px 14px rgba(16,185,129,0.3); }
+.quiz-submit-answers-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Quiz warning */
+.quiz-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: #FFFBEB;
+  border: 1.5px solid #FDE68A;
+  border-radius: 10px;
+  margin-bottom: 1.2rem;
+  font-size: 0.82rem;
+  color: #92400E;
+  line-height: 1.45;
+}
+.quiz-warning svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #F59E0B;
+}
+
+/* Teacher preview banner */
+.quiz-teacher-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  background: #EFF6FF;
+  border: 1.5px solid #BFDBFE;
+  border-radius: 10px;
+  margin-bottom: 1.2rem;
+  font-size: 0.82rem;
+  color: #1E40AF;
+  line-height: 1.45;
+}
+.quiz-teacher-preview svg {
+  flex-shrink: 0;
+  color: #3B82F6;
+}
+.quiz-teacher-preview span {
+  flex: 1;
+}
+
+/* Edit quiz button */
+.quiz-edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border: 1.5px solid #BFDBFE;
+  border-radius: 7px;
+  background: #fff;
+  color: #2563EB;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.quiz-edit-btn:hover {
+  background: #DBEAFE;
+  border-color: #93C5FD;
+}
+
+/* Edit form actions */
+.quiz-edit-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+.quiz-cancel-edit-btn {
+  padding: 0.5rem 1.2rem;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  background: #fff;
+  color: #6B7280;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.quiz-cancel-edit-btn:hover {
+  border-color: #D1D5DB;
+  background: #F9FAFB;
+}
+
+/* Quiz result */
+.quiz-result-card {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  background: #F9FAFB;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+.quiz-result-score {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #EF4444;
+  margin-bottom: 0.3rem;
+}
+.quiz-result-score--good {
+  color: #10B981;
+}
+.quiz-result-text {
+  font-size: 0.9rem;
+  color: #6B7280;
+  margin: 0 0 1rem;
+}
+.quiz-result-locked {
+  font-size: 0.8rem;
+  color: #9CA3AF;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* Quiz card attempted — score colors */
+.quiz-card--pass {
+  border-color: #D1FAE5 !important;
+  background: #F0FDF4;
+}
+.quiz-card--pass:hover { border-color: #A7F3D0 !important; }
+
+.quiz-card--avg {
+  border-color: #FDE68A !important;
+  background: #FFFBEB;
+}
+.quiz-card--avg:hover { border-color: #FCD34D !important; }
+
+.quiz-card--fail {
+  border-color: #FECACA !important;
+  background: #FEF2F2;
+}
+.quiz-card--fail:hover { border-color: #FCA5A5 !important; }
+
+.quiz-card-attempted {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  width: fit-content;
+}
+.quiz-card-attempted--pass {
+  color: #065F46;
+  background: #D1FAE5;
+}
+.quiz-card-attempted--pass strong { color: #10B981; }
+.quiz-card-attempted--avg {
+  color: #92400E;
+  background: #FEF3C7;
+}
+.quiz-card-attempted--avg strong { color: #D97706; }
+.quiz-card-attempted--fail {
+  color: #991B1B;
+  background: #FEE2E2;
+}
+.quiz-card-attempted--fail strong { color: #EF4444; }
+
+/* Grades button on quiz card */
+.quiz-grades-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #EFF6FF;
+  border-radius: 6px;
+  color: #3B82F6;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.quiz-grades-btn:hover {
+  background: #DBEAFE;
+  color: #2563EB;
+}
+
+/* Teacher grades panel */
+.quiz-grades-panel {
+  padding: 0;
+}
+.quiz-grades-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0.5rem 0 1.2rem;
+}
+.quiz-grades-loading {
+  text-align: center;
+  color: #9CA3AF;
+  padding: 2rem;
+  font-size: 0.9rem;
+}
+.quiz-grades-empty {
+  text-align: center;
+  color: #9CA3AF;
+  padding: 2rem;
+  font-size: 0.9rem;
+  background: #F9FAFB;
+  border: 1.5px dashed #E5E7EB;
+  border-radius: 10px;
+}
+.quiz-grades-table-wrap {
+  overflow-x: auto;
+}
+.quiz-grades-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.quiz-grades-table thead {
+  background: #F3F4F6;
+}
+.quiz-grades-table th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1.5px solid #E5E7EB;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.quiz-grades-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #F3F4F6;
+  color: #4B5563;
+}
+.quiz-grades-table tbody tr:hover {
+  background: #F9FAFB;
+}
+.quiz-grades-name {
+  font-weight: 500;
+  color: #111827;
+}
+.quiz-grades-score {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  background: #FEF3C7;
+  color: #92400E;
+}
+.quiz-grades-score--good {
+  background: #D1FAE5;
+  color: #065F46;
+}
+.quiz-grades-score--bad {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+.quiz-grades-date {
+  font-size: 0.78rem;
+  color: #9CA3AF;
+}
+.quiz-grades-avg {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: #F3F4F6;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #4B5563;
+}
+.quiz-grades-avg strong {
+  color: #111827;
 }
 </style>

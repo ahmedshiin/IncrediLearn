@@ -1,5 +1,7 @@
 package com.incredilearn.incredilearn;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -11,8 +13,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -22,11 +22,11 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**", "/api/documents/**", "/api/messages/**", "/ws/**").permitAll()
+                .requestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**", "/api/documents/**", "/api/messages/**", "/api/quizzes/**", "/api/questions/**", "/ws/**").permitAll()
                 .anyRequest().authenticated()
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**", "/api/documents/**", "/api/messages/**", "/ws/**")
+                .ignoringRequestMatchers("/h2-console/**", "/api/auth/**", "/api/courses/**", "/api/admin/**", "/api/documents/**", "/api/messages/**", "/api/quizzes/**", "/api/questions/**", "/ws/**")
             )
             .headers(headers -> headers
                 .frameOptions(frame -> frame.sameOrigin())

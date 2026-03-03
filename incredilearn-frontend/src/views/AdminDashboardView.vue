@@ -3,6 +3,24 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { adminService, type AdminUser, type AdminStats, type DocMeta } from '@/services/adminService'
 import { useAuthStore } from '@/stores/auth'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+
+// ── Custom modal state ──
+const modalVisible = ref(false)
+const modalMessage = ref('')
+const modalTitle = ref('')
+const modalVariant = ref<'danger' | 'warning' | 'info'>('danger')
+let modalResolve: ((v: boolean) => void) | null = null
+
+function showConfirm(message: string, title = '', variant: 'danger' | 'warning' | 'info' = 'danger'): Promise<boolean> {
+  modalMessage.value = message
+  modalTitle.value = title
+  modalVariant.value = variant
+  modalVisible.value = true
+  return new Promise(resolve => { modalResolve = resolve })
+}
+function onModalConfirm() { modalVisible.value = false; modalResolve?.(true); modalResolve = null }
+function onModalCancel()  { modalVisible.value = false; modalResolve?.(false); modalResolve = null }
 
 interface CourseItem {
   id: number
@@ -99,7 +117,8 @@ async function toggleBlock(user: AdminUser) {
 }
 
 async function refuseTeacher(user: AdminUser) {
-  if (!confirm(`Refuser et supprimer le compte de ${user.nom} ?`)) return
+  const ok = await showConfirm(`Refuser et supprimer le compte de ${user.nom} ?`, 'Refuser l\'enseignant', 'danger')
+  if (!ok) return
   await adminService.deleteUser(user.id)
   users.value = users.value.filter(u => u.id !== user.id)
   const s = await adminService.getStats()
@@ -628,6 +647,18 @@ function barY(v: number) {
       </div>
     </div>
   </div>
+
+  <ConfirmModal
+    :visible="modalVisible"
+    :message="modalMessage"
+    :title="modalTitle"
+    :variant="modalVariant"
+    type="confirm"
+    confirm-text="Confirmer"
+    cancel-text="Annuler"
+    @confirm="onModalConfirm"
+    @cancel="onModalCancel"
+  />
 </template>
 
 <style scoped>
