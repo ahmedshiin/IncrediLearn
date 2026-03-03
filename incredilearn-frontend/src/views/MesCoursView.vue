@@ -13,6 +13,7 @@ interface Course {
   dureeHeures: number
   niveau: string
   nombreEtudiants: number
+  imageUrl: string | null
 }
 
 const authStore = useAuthStore()
@@ -176,7 +177,7 @@ async function unenroll(courseId: number) {
         <div v-for="course in courses" :key="course.id" class="course-card">
           <!-- Image -->
           <div class="course-image">
-            <img :src="getCourseImage(course.titre, course.domain)" :alt="course.titre" loading="lazy" />
+            <img :src="course.imageUrl ? `http://localhost:8080${course.imageUrl}` : getCourseImage(course.titre, course.domain)" :alt="course.titre" loading="lazy" />
           </div>
 
           <div class="course-body">
