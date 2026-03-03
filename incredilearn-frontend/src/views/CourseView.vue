@@ -405,6 +405,7 @@ const activeLessonVideoUrl = computed(() => {
 })
 const activeTab     = ref<'resources' | 'summary' | 'discussion' | 'live' | 'quiz'>('resources')
 const selectedSections = ref<number[]>([])
+const selectedContentIds = ref<number[]>([])
 const generatedSummary = ref('')
 const isGenerating = ref(false)
 const summaryError = ref('')
@@ -690,6 +691,8 @@ function toggleSection(idx: number) {
   const i = selectedSections.value.indexOf(idx)
   if (i === -1) selectedSections.value.push(idx)
   else selectedSections.value.splice(i, 1)
+}
+
 // Fichiers documents uploadés pour ce cours (PDF, DOCX, etc.)
 const summarizableContents = computed(() =>
   uploadedContents.value.filter(c => c.contentType === 'Document')

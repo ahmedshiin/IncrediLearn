@@ -186,3 +186,15 @@ The connection was not closed by the application and is garbage collected [90018
 	at org.h2.message.DbException.getJdbcSQLException(DbException.java:690)
 	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
 	... 16 more
+2026-03-04 00:05:17.966350+01:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "ALLFROM" non trouvée
+Table "ALLFROM" not found; SQL statement:
+DELETE ALLFROM Messages [42102-240]
+2026-03-04 00:05:21.551014+01:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Erreur de syntaxe dans l'instruction SQL "DELETE [*]ALL FROM Messages"; attendu "identifier"
+Syntax error in SQL statement "DELETE [*]ALL FROM Messages"; expected "identifier"; SQL statement:
+DELETE ALL FROM Messages [42001-240]
+2026-03-04 00:05:27.132831+01:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Erreur de syntaxe dans l'instruction SQL "DELETE [*]* FROM Messages"; attendu "identifier"
+Syntax error in SQL statement "DELETE [*]* FROM Messages"; expected "identifier"; SQL statement:
+DELETE * FROM Messages [42001-240]
