@@ -439,7 +439,7 @@ function startEdit(q: Question) {
   editingId.value = q.id
   editText.value  = q.text
 }
-function cancelEdit() {
+function cancelQuestionEdit() {
   editingId.value = null
   editText.value  = ''
 }
@@ -452,7 +452,7 @@ function saveEdit(id: number) {
     q.edited = true
     localStorage.setItem(`incredilearn_questions_${courseId}`, JSON.stringify(questions.value))
   }
-  cancelEdit()
+  cancelQuestionEdit()
 }
 
 function getRoleLabel(role: string) {
@@ -1053,12 +1053,12 @@ async function uploadCoverImage(event: Event) {
                     class="discussion-textarea discussion-textarea--edit"
                     rows="3"
                     @keydown.ctrl.enter="saveEdit(q.id)"
-                    @keydown.esc="cancelEdit"
+                    @keydown.esc="cancelQuestionEdit"
                   />
                   <div class="discussion-edit-actions">
                     <span class="discussion-hint">Ctrl+Entrée pour sauvegarder · Échap pour annuler</span>
                     <div style="display:flex;gap:6px">
-                      <button class="discussion-cancel-btn" @click="cancelEdit">Annuler</button>
+                      <button class="discussion-cancel-btn" @click="cancelQuestionEdit">Annuler</button>
                       <button class="discussion-submit" :disabled="!editText.trim()" @click="saveEdit(q.id)">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                           <polyline points="20 6 9 17 4 12"/>
