@@ -1,11 +1,56 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
+import StarPolygon from '@/components/StarPolygon.vue'
 
 const searchQuery = ref('')
 const selectedLevel = ref('Tous les niveaux')
 const selectedDomain = ref('Tous')
+const minRating = ref(0)
+const starDropdownOpen = ref(false)
+const dropdownRef = ref<HTMLElement | null>(null)
 const isLoading = ref(true)
+
+const starOptions = [0, 3, 3.5, 4, 4.5, 5]
+
+function selectRating(value: number) {
+  minRating.value = value
+  starDropdownOpen.value = false
+}
+
+function getRatingLabel(rating: number) {
+  return rating === 0 ? "Toutes les notes" : `> ${rating} étoiles`
+}
+
+function handleClickOutside(event: MouseEvent) {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
+    starDropdownOpen.value = false
+  }
+}
+
+function resetFilters() {
+  searchQuery.value = ''
+  selectedDomain.value = 'Tous'
+  selectedLevel.value = 'Tous les niveaux'
+  minRating.value = 0
+  starDropdownOpen.value = false
+}
+
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 const levels  = ['Tous les niveaux', 'Débutant', 'Intermédiaire', 'Avancé']
 const domains = ['Tous', 'Informatique & Programmation', 'Design', 'Marketing', 'Bureautique', 'Business', 'Intelligence Artificielle', 'Cybersécurité', 'Photographie']
@@ -21,6 +66,7 @@ interface CourseItem {
   badgeClass: string
   image: string
   domain: string
+  rating: number
 }
 
 const allCourses = ref<CourseItem[]>([])
@@ -87,6 +133,7 @@ onMounted(async () => {
       badgeClass: getBadgeClass(c.niveau),
       image: getCourseImage(c.titre, c.domain),
       domain: c.domain || '',
+      rating: 4.7,
     }))
   } catch (e) {
     console.error('Erreur chargement cours', e)
@@ -96,15 +143,36 @@ onMounted(async () => {
 })
 
 const filteredCourses = computed(() => {
-  const q = searchQuery.value.toLowerCase()
+  const q = normalize(searchQuery.value)
   return allCourses.value.filter(c => {
-    const matchSearch = !q ||
-      c.title.toLowerCase().includes(q) ||
-      c.instructor.toLowerCase().includes(q) ||
-      c.description.toLowerCase().includes(q)
-    const matchLevel  = selectedLevel.value === 'Tous les niveaux' || c.badge === selectedLevel.value
-    const matchDomain = selectedDomain.value === 'Tous' || c.domain === selectedDomain.value
-    return matchSearch && matchLevel && matchDomain
+    // Texte searchable combiné
+    const searchableText = normalize(
+      [
+        c.title,
+        c.instructor,
+        c.description,
+        c.domain
+      ].join(" ")
+    )
+
+    // Recherche multi-mots (AND logique)
+    const matchesSearch = !q || (() => {
+      const words = q.split(/\s+/).filter(Boolean)
+      return words.every(word =>
+        searchableText.includes(word)
+      )
+    })()
+
+    // Niveau
+    const matchesLevel = selectedLevel.value === 'Tous les niveaux' || c.badge === selectedLevel.value
+
+    // Domaine
+    const matchesDomain = selectedDomain.value === 'Tous' || normalize(c.domain).includes(normalize(selectedDomain.value))
+
+    // Note minimale
+    const matchesRating = c.rating >= minRating.value
+
+    return matchesSearch && matchesLevel && matchesDomain && matchesRating
   })
 })
 </script>
@@ -123,19 +191,92 @@ const filteredCourses = computed(() => {
     <!-- Filters -->
     <section class="filters-bar">
       <div class="filters-inner">
-        <div class="search-wrap">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input v-model="searchQuery" type="text" placeholder="Rechercher un cours ou un instructeur…" />
+        <!-- Search bar -->
+        <div class="search-bar">
+          <!-- Text input -->
+          <div class="search-input-wrap">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="search-input"
+              placeholder="Rechercher un cours ou un instructeur…"
+            />
+          </div>
+
+          <!-- Domain -->
+          <div class="search-divider"></div>
+          <div class="select-wrap">
+            <select v-model="selectedDomain" class="search-select">
+              <option>Tous</option>
+              <option>Informatique & Programmation</option>
+              <option>Design</option>
+              <option>Marketing</option>
+              <option>Bureautique</option>
+              <option>Business</option>
+              <option>Intelligence Artificielle</option>
+              <option>Cybersécurité</option>
+              <option>Photographie</option>
+            </select>
+            <svg class="select-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="#6B7280" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+
+          <!-- Level -->
+          <div class="search-divider"></div>
+          <div class="select-wrap">
+            <select v-model="selectedLevel" class="search-select">
+              <option>Tous les niveaux</option>
+              <option>Débutant</option>
+              <option>Intermédiaire</option>
+              <option>Avancé</option>
+            </select>
+            <svg class="select-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="#6B7280" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+
+          <!-- Rating -->
+          <div class="search-divider"></div>
+          <div class="select-wrap rating-select" ref="dropdownRef">
+            <div class="star-dropdown" @click="starDropdownOpen = !starDropdownOpen">
+              {{ getRatingLabel(minRating) }}
+              <svg class="select-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="#6B7280" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+
+            <div v-if="starDropdownOpen" class="star-options">
+              <div v-for="value in starOptions" :key="value" class="option" @click="selectRating(value)">
+                <span class="option-label">{{ getRatingLabel(value) }}</span>
+                <div class="stars-wrapper" style="display:flex; gap:2px;">
+                  <StarPolygon
+                    v-for="i in 5"
+                    :key="i"
+                    :rating="Math.min(Math.max(value - i + 1, 0), 1)"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reset button -->
+          <div class="search-divider"></div>
+          <button class="filter-btn" aria-label="Réinitialiser les filtres" @click="resetFilters">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
-        <select v-model="selectedDomain">
-          <option v-for="d in domains" :key="d">{{ d }}</option>
-        </select>
-        <select v-model="selectedLevel">
-          <option v-for="l in levels" :key="l">{{ l }}</option>
-        </select>
+
         <span class="result-count">{{ filteredCourses.length }} résultat{{ filteredCourses.length !== 1 ? 's' : '' }}</span>
       </div>
     </section>
@@ -206,47 +347,161 @@ const filteredCourses = computed(() => {
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0,0,0,.06);
 }
+
 .filters-inner {
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
   flex-wrap: wrap;
+  justify-content: space-between;
 }
-.search-wrap {
-  flex: 1;
-  min-width: 220px;
+
+/* ── Search Bar ── */
+.search-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #f1f5f9;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 0 14px;
+  background: #ffffff;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 0.45rem 0.75rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 400px;
 }
-.search-wrap svg { color: #94a3b8; flex-shrink: 0; }
-.search-wrap input {
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.search-icon { flex-shrink: 0; }
+
+.search-input {
+  flex: 1;
   border: none;
+  outline: none;
+  font-size: 0.875rem;
+  color: #374151;
   background: transparent;
-  outline: none;
-  width: 100%;
-  font-size: .95rem;
-  padding: 10px 0;
-  color: #1e293b;
+  min-width: 0;
 }
-.filters-inner select {
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: .9rem;
-  background: white;
-  color: #475569;
+
+.search-input::placeholder { color: #9CA3AF; }
+
+.search-divider {
+  width: 1px;
+  height: 28px;
+  background: #E5E7EB;
+  flex-shrink: 0;
+}
+
+.select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.search-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
   outline: none;
+  font-size: 0.875rem;
+  color: #374151;
+  background: transparent;
+  cursor: pointer;
+  padding: 0.25rem 1.4rem 0.25rem 0.5rem;
+}
+
+.select-chevron {
+  position: absolute;
+  right: 0;
+  pointer-events: none;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0.3rem 0.35rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+  flex-shrink: 0;
   cursor: pointer;
 }
-.filters-inner select:focus { border-color: #6c46ff; }
-.result-count { font-size: .85rem; color: #94a3b8; white-space: nowrap; margin-left: 4px; }
+
+.filter-btn:hover { background: #F3F4F6; }
+
+.result-count { 
+  font-size: .85rem; 
+  color: #94a3b8; 
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Rating Dropdown ── */
+.rating-select {
+  min-width: 150px;
+  position: relative;
+}
+
+.star-dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+  color: #374151;
+  gap: 0.5rem;
+}
+
+.star-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  margin-top: 2px;
+  z-index: 20;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  min-width: 120px;
+  padding: 0.25rem 0;
+}
+
+.option {
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  transition: background 0.15s;
+}
+
+.option:hover {
+  background: #F3F4F6;
+}
+
+.star-options .option {
+  text-align: start;
+}
+
+.option-label {
+  font-size: 0.875rem;
+  color: #374151;
+  min-width: 80px;
+}
 
 /* ── Grid ────────────────────────────────────────────────── */
 .courses-grid-section { max-width: 1200px; margin: 0 auto; padding: 40px 24px 60px; }
@@ -328,10 +583,33 @@ const filteredCourses = computed(() => {
 .empty button:hover { background: #5a35e8; }
 
 /* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .search-bar {
+    min-width: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .filters-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-bar {
+    min-width: unset;
+  }
+  .search-divider {
+    display: none;
+  }
+  .select-wrap {
+    width: 100%;
+  }
+  .search-select {
+    width: 100%;
+  }
+}
+
 @media (max-width: 640px) {
   .hero h1 { font-size: 1.7rem; }
   .courses-grid { grid-template-columns: 1fr; }
-  .filters-inner { flex-direction: column; align-items: stretch; }
-  .search-wrap { min-width: unset; }
 }
 </style>

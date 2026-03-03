@@ -21,7 +21,7 @@ function selectRating(value: number) {
 }
 
 function getRatingLabel(rating: number) {
-  return rating === 0 ? "Toutes les notes" : `${rating} étoiles`
+  return rating === 0 ? "Toutes les notes" : `> ${rating} étoiles`
 }
 
 function handleClickOutside(event: MouseEvent) {
@@ -267,6 +267,7 @@ const recommendedCourses = computed(() => {
           
           <div v-if="starDropdownOpen" class="star-options">
             <div v-for="value in starOptions" :key="value" class="option" @click="selectRating(value)">
+              <span class="option-label">{{ getRatingLabel(value) }}</span>
               <div class="stars-wrapper" style="display:flex; gap:2px;">
                 <StarPolygon
                   v-for="i in 5"
@@ -790,10 +791,22 @@ const recommendedCourses = computed(() => {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  gap: 0.5rem;
+  transition: background 0.15s;
 }
 
 .option:hover {
   background: #F3F4F6;
+}
+
+.star-options .option {
+  text-align: start;
+}
+
+.option-label {
+  font-size: 0.875rem;
+  color: #374151;
+  min-width: 80px;
 }
 
 /* ── Responsive ── */
