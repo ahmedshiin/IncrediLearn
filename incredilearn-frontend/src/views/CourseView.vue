@@ -271,11 +271,28 @@ const isEnrolled   = ref(false)
 const enrollLoading = ref(false)
 const enrollMsg     = ref('')
 
+// ── Star rating ──────────────────────────────────────────
+const userRating  = ref(0)   // 0 = not rated yet
+const hoverRating = ref(0)
+
+function setRating(stars: number) {
+  userRating.value = stars
+  const userId = authStore.user?.id
+  if (!userId) return
+  localStorage.setItem(`incredilearn_rating_${userId}_${courseId}`, String(stars))
+}
+// ─────────────────────────────────────────────────────────
+
 onMounted(async () => {
   if (!authStore.user?.id) return
   // Restore completed lessons from localStorage
   const saved = localStorage.getItem(`incredilearn_lessons_${authStore.user.id}_${courseId}`)
   if (saved) completedLessons.value = JSON.parse(saved)
+  // Restore saved rating
+  const savedRating = localStorage.getItem(`incredilearn_rating_${authStore.user.id}_${courseId}`)
+  if (savedRating) userRating.value = Number(savedRating)
+  // Load questions
+  loadQuestions()
   try {
     const res = await fetch(`http://localhost:8080/api/courses/user/${authStore.user.id}`)
     if (res.ok) {
@@ -374,6 +391,87 @@ function generateSummary() {
 }
 const completedLessons = ref<number[]>([])
 
+// ── Questions / Discussion ──────────────────────────────────
+interface Question {
+  id: number
+  userId: number
+  userName: string
+  role: string
+  text: string
+  timestamp: string
+  edited?: boolean
+}
+
+const questions = ref<Question[]>([])
+const newQuestion = ref('')
+
+function loadQuestions() {
+  const saved = localStorage.getItem(`incredilearn_questions_${courseId}`)
+  questions.value = saved ? JSON.parse(saved) : []
+}
+
+function submitQuestion() {
+  const text = newQuestion.value.trim()
+  if (!text || !isEnrolled.value || !authStore.user?.id) return
+  const q: Question = {
+    id: Date.now(),
+    userId: authStore.user.id as number,
+    userName: authStore.user.nom || 'Utilisateur',
+    role: authStore.user.role || 'etudiant',
+    text,
+    timestamp: new Date().toISOString(),
+  }
+  questions.value.unshift(q)
+  localStorage.setItem(`incredilearn_questions_${courseId}`, JSON.stringify(questions.value))
+  newQuestion.value = ''
+}
+
+function deleteQuestion(id: number) {
+  questions.value = questions.value.filter(q => q.id !== id)
+  localStorage.setItem(`incredilearn_questions_${courseId}`, JSON.stringify(questions.value))
+  if (editingId.value === id) { editingId.value = null; editText.value = '' }
+}
+
+const editingId = ref<number | null>(null)
+const editText  = ref('')
+
+function startEdit(q: Question) {
+  editingId.value = q.id
+  editText.value  = q.text
+}
+function cancelEdit() {
+  editingId.value = null
+  editText.value  = ''
+}
+function saveEdit(id: number) {
+  const text = editText.value.trim()
+  if (!text) return
+  const q = questions.value.find(q => q.id === id)
+  if (q) {
+    q.text = text
+    q.edited = true
+    localStorage.setItem(`incredilearn_questions_${courseId}`, JSON.stringify(questions.value))
+  }
+  cancelEdit()
+}
+
+function getRoleLabel(role: string) {
+  if (role === 'enseignant') return 'Professeur'
+  if (role === 'admin') return 'Admin'
+  return 'Étudiant'
+}
+
+function getRoleClass(role: string) {
+  if (role === 'enseignant') return 'badge-role--prof'
+  if (role === 'admin') return 'badge-role--admin'
+  return 'badge-role--student'
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+// ────────────────────────────────────────────────────────────
+
 watch(completedLessons, (val) => {
   const userId = authStore.user?.id
   if (!userId || !course.value) return
@@ -390,6 +488,7 @@ function selectLesson(idx: number) {
   activeLesson.value = idx
 }
 function toggleComplete(idx: number) {
+  if (!isEnrolled.value) return   // pas d'inscription → pas de progression
   const i = completedLessons.value.indexOf(idx)
   if (i === -1) completedLessons.value.push(idx)
   else completedLessons.value.splice(i, 1)
@@ -689,7 +788,32 @@ async function uploadCoverImage(event: Event) {
               </svg>
               {{ enrollLoading ? 'En cours…' : 'Déjà inscrit — Se désinscrire' }}
             </button>
+
+            <!-- ── Star rating (visible only when enrolled) ── -->
+            <div v-if="isEnrolled" class="course-rating">
+              <span class="rating-label">{{ userRating === 0 ? 'Notez ce cours :' : 'Votre note :' }}</span>
+              <div class="stars-row">
+                <button
+                  v-for="star in 5"
+                  :key="star"
+                  class="star-btn"
+                  @mouseenter="hoverRating = star"
+                  @mouseleave="hoverRating = 0"
+                  @click="setRating(star)"
+                  :aria-label="`${star} étoile${star > 1 ? 's' : ''}`"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24"
+                    :fill="star <= (hoverRating || userRating) ? '#F59E0B' : 'none'"
+                    :stroke="star <= (hoverRating || userRating) ? '#F59E0B' : '#D1D5DB'"
+                    stroke-width="1.5">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                </button>
+              </div>
+              <span v-if="userRating > 0" class="rating-value">{{ userRating }}/5</span>
+            </div>
           </div>
+
         </div>
 
         <!-- Tabs -->
@@ -855,8 +979,100 @@ async function uploadCoverImage(event: Event) {
         </div>
 
         <!-- Discussion -->
-        <div v-else-if="activeTab === 'discussion'" class="discussion-empty">
-          <p>Aucun commentaire pour le moment. Soyez le premier à participer !</p>
+        <div v-else-if="activeTab === 'discussion'" class="discussion-panel">
+
+          <!-- Zone de saisie -->
+          <div v-if="isEnrolled" class="discussion-form">
+            <div class="discussion-form-header">
+              <span class="discussion-avatar">{{ (authStore.user?.nom || 'U').charAt(0).toUpperCase() }}</span>
+              <div class="discussion-form-meta">
+                <span class="discussion-form-name">{{ authStore.user?.nom }}</span>
+                <span class="badge-role" :class="getRoleClass(authStore.user?.role || '')">
+                  {{ getRoleLabel(authStore.user?.role || '') }}
+                </span>
+              </div>
+            </div>
+            <textarea
+              v-model="newQuestion"
+              class="discussion-textarea"
+              placeholder="Posez votre question ou partagez un commentaire..."
+              rows="3"
+              @keydown.ctrl.enter="submitQuestion"
+            />
+            <div class="discussion-form-footer">
+              <span class="discussion-hint">Ctrl+Entrée pour envoyer</span>
+              <button class="discussion-submit" :disabled="!newQuestion.trim()" @click="submitQuestion">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                Envoyer
+              </button>
+            </div>
+          </div>
+
+          <!-- Message si non inscrit -->
+          <div v-else class="discussion-locked">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <p>Inscrivez-vous à ce cours pour poser des questions et participer.</p>
+          </div>
+
+          <!-- Liste des questions -->
+          <div class="discussion-list">
+            <div v-if="questions.length === 0" class="discussion-empty">
+              <p>Aucune question pour le moment. {{ isEnrolled ? 'Soyez le premier à participer !' : '' }}</p>
+            </div>
+            <div v-for="q in questions" :key="q.id" class="discussion-item">
+              <span class="discussion-avatar">{{ (q.userName || 'U').charAt(0).toUpperCase() }}</span>
+              <div class="discussion-item-body">
+                <div class="discussion-item-header">
+                  <span class="discussion-item-name">{{ q.userName }}</span>
+                  <span class="badge-role" :class="getRoleClass(q.role)">{{ getRoleLabel(q.role) }}</span>
+                  <span class="discussion-item-date">{{ formatDate(q.timestamp) }}<span v-if="q.edited" class="discussion-edited"> (modifié)</span></span>
+                  <template v-if="authStore.user?.id === q.userId && editingId !== q.id">
+                    <button class="discussion-action-btn" title="Modifier" @click="startEdit(q)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                    <button class="discussion-action-btn discussion-action-btn--delete" title="Supprimer" @click="deleteQuestion(q.id)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </template>
+                </div>
+                <!-- Mode édition -->
+                <template v-if="editingId === q.id">
+                  <textarea
+                    v-model="editText"
+                    class="discussion-textarea discussion-textarea--edit"
+                    rows="3"
+                    @keydown.ctrl.enter="saveEdit(q.id)"
+                    @keydown.esc="cancelEdit"
+                  />
+                  <div class="discussion-edit-actions">
+                    <span class="discussion-hint">Ctrl+Entrée pour sauvegarder · Échap pour annuler</span>
+                    <div style="display:flex;gap:6px">
+                      <button class="discussion-cancel-btn" @click="cancelEdit">Annuler</button>
+                      <button class="discussion-submit" :disabled="!editText.trim()" @click="saveEdit(q.id)">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Sauvegarder
+                      </button>
+                    </div>
+                  </div>
+                </template>
+                <!-- Mode lecture -->
+                <p v-else class="discussion-item-text">{{ q.text }}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Session Live -->
@@ -910,7 +1126,10 @@ async function uploadCoverImage(event: Event) {
               <input
                 type="checkbox"
                 class="lesson-check"
+                :class="{ 'lesson-check--locked': !isEnrolled }"
                 :checked="completedLessons.includes(idx)"
+                :disabled="!isEnrolled"
+                :title="!isEnrolled ? 'Inscrivez-vous pour suivre votre progression' : ''"
                 @click.stop="toggleComplete(idx)"
               />
             </li>
@@ -1198,7 +1417,7 @@ async function uploadCoverImage(event: Event) {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 8px;
   flex-shrink: 0;
 }
 .enroll-btn {
@@ -1220,6 +1439,30 @@ async function uploadCoverImage(event: Event) {
 .enroll-btn:disabled { opacity: 0.75; cursor: default; }
 .enroll-btn--done { background: #FEE2E2; color: #DC2626; border-color: #FECACA; }
 .enroll-btn--done:hover { background: #FCA5A5; border-color: #F87171; }
+
+/* ── Star rating ── */
+.course-rating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 10px;
+}
+.rating-label { font-size: .85rem; color: #92400E; font-weight: 500; white-space: nowrap; }
+.stars-row { display: flex; gap: 2px; }
+.star-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  transition: transform .15s;
+  line-height: 0;
+}
+.star-btn:hover { transform: scale(1.2); }
+.rating-value { font-size: .85rem; font-weight: 700; color: #D97706; }
 .enroll-msg {
   font-size: 0.78rem;
   color: #EF4444;
@@ -1368,7 +1611,75 @@ async function uploadCoverImage(event: Event) {
 }
 .dl-btn:hover { border-color: #10B981; color: #10B981; }
 
-/* Discussion placeholder */
+/* ════ DISCUSSION ════ */
+.discussion-panel { display: flex; flex-direction: column; gap: 1rem; }
+
+.discussion-form {
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #FAFAFA;
+}
+.discussion-form-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.discussion-form-meta { display: flex; align-items: center; gap: 8px; }
+.discussion-form-name { font-weight: 600; font-size: .9rem; color: #1e293b; }
+.discussion-textarea {
+  width: 100%;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: .9rem;
+  color: #1e293b;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color .2s;
+  box-sizing: border-box;
+  background: #fff;
+}
+.discussion-textarea:focus { outline: none; border-color: #10B981; }
+.discussion-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.discussion-hint { font-size: .75rem; color: #94a3b8; }
+.discussion-submit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #10B981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+}
+.discussion-submit:hover { background: #059669; }
+.discussion-submit:disabled { background: #D1FAE5; color: #6EE7B7; cursor: not-allowed; }
+
+.discussion-locked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #F8FAFC;
+  border: 1.5px dashed #CBD5E1;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: .875rem;
+}
+.discussion-locked p { margin: 0; }
+
+.discussion-list { display: flex; flex-direction: column; gap: 10px; }
 .discussion-empty {
   padding: 2rem;
   text-align: center;
@@ -1377,6 +1688,89 @@ async function uploadCoverImage(event: Event) {
   border: 1.5px dashed #E5E7EB;
   border-radius: 10px;
 }
+
+.discussion-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: white;
+  font-weight: 700;
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.discussion-item {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border: 1.5px solid #F1F5F9;
+  border-radius: 10px;
+  background: #fff;
+}
+.discussion-item-body { flex: 1; min-width: 0; }
+.discussion-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.discussion-item-name { font-weight: 600; font-size: .875rem; color: #1e293b; }
+.discussion-item-date { font-size: .75rem; color: #94a3b8; margin-left: auto; }
+.discussion-item-text { font-size: .875rem; color: #334155; margin: 0; line-height: 1.5; white-space: pre-wrap; }
+.discussion-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 3px 5px;
+  line-height: 0;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
+}
+.discussion-action-btn:hover { color: #10B981; background: #D1FAE5; }
+.discussion-action-btn--delete:hover { color: #EF4444; background: #FEE2E2; }
+
+.discussion-textarea--edit { margin-top: 6px; }
+.discussion-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.discussion-cancel-btn {
+  background: #F1F5F9;
+  border: 1.5px solid #E2E8F0;
+  color: #475569;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.discussion-cancel-btn:hover { background: #E2E8F0; }
+.discussion-edited { font-style: italic; color: #94a3b8; font-size: .72rem; }
+
+
+/* Role badges */
+.badge-role {
+  font-size: .7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.badge-role--student { background: #DBEAFE; color: #1D4ED8; }
+.badge-role--prof    { background: #D1FAE5; color: #065F46; }
+.badge-role--admin   { background: #EDE9FE; color: #5B21B6; }
+
 
 /* ════ SIDEBAR ════ */
 .sidebar-card {
@@ -1485,6 +1879,10 @@ async function uploadCoverImage(event: Event) {
   height: 15px;
   flex-shrink: 0;
   cursor: pointer;
+}
+.lesson-check--locked {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 /* Download offline */
