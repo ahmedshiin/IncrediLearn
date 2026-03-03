@@ -140,7 +140,11 @@ interface CourseData {
   id: number
   title: string
   instructor: string
+  instructorId: number
   category: string
+  description: string
+  niveau: string
+  dureeHeures: number
   image: string
   lessons: { id: number; title: string; duration: string; description: string }[]
   resources: { name: string; type: string; size: string; downloadUrl?: string }[]
@@ -246,7 +250,11 @@ onMounted(async () => {
       id: data.id,
       title: data.titre,
       instructor: data.enseignantNom || 'Instructeur',
+      instructorId: data.enseignantId,
       category: data.domain || '',
+      description: data.description || '',
+      niveau: data.niveau || '',
+      dureeHeures: data.dureeHeures || 0,
       image: data.imageUrl ? 'http://localhost:8080' + data.imageUrl : getCourseImage(data.titre, data.domain),
       lessons,
       resources,
@@ -386,6 +394,181 @@ function toggleComplete(idx: number) {
   if (i === -1) completedLessons.value.push(idx)
   else completedLessons.value.splice(i, 1)
 }
+
+/* ── Edit mode ── */
+const isOwner = computed(() => {
+  return authStore.user?.id != null && course.value?.instructorId === authStore.user.id
+})
+
+const editMode = ref(false)
+const editForm = ref({ titre: '', description: '', domain: '', niveau: '', dureeHeures: 0 })
+const savingInfo = ref(false)
+const uploadingFile = ref(false)
+const deletingContentId = ref<number | null>(null)
+
+function enterEditMode() {
+  if (!course.value) return
+  editForm.value = {
+    titre: course.value.title,
+    description: course.value.description,
+    domain: course.value.category,
+    niveau: course.value.niveau,
+    dureeHeures: course.value.dureeHeures,
+  }
+  editMode.value = true
+}
+
+function cancelEdit() {
+  editMode.value = false
+}
+
+async function saveInfo() {
+  if (!course.value || !authStore.user?.id || savingInfo.value) return
+  savingInfo.value = true
+  try {
+    const res = await fetch(`http://localhost:8080/api/courses/${course.value.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...editForm.value, enseignantId: authStore.user.id }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      course.value.title = updated.titre
+      course.value.description = updated.description || ''
+      course.value.category = updated.domain || ''
+      course.value.niveau = updated.niveau || ''
+      course.value.dureeHeures = updated.dureeHeures || 0
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    savingInfo.value = false
+  }
+}
+
+async function uploadNewContent(event: Event) {
+  const input = event.target as HTMLInputElement
+  if (!input.files?.length || !course.value || uploadingFile.value) return
+  uploadingFile.value = true
+
+  for (const file of Array.from(input.files)) {
+    const isVideo = file.type.startsWith('video/')
+    const contentType = isVideo ? 'Video' : 'Document'
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', contentType)
+    formData.append('order', '0')
+
+    // Extract video duration if applicable
+    if (isVideo) {
+      const duration = await getVideoDuration(file)
+      if (duration > 0) formData.append('duration', String(duration))
+    }
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/courses/content/upload/${course.value.id}`, {
+        method: 'POST',
+        body: formData,
+      })
+      if (res.ok) {
+        const dto = await res.json()
+        uploadedContents.value.push(dto)
+        // Update local lists
+        if (contentType === 'Video') {
+          course.value.lessons.push({
+            id: dto.id,
+            title: dto.fileName.replace(/\.[^.]+$/, ''),
+            duration: '-',
+            description: `Vidéo du cours : ${dto.fileName}`,
+          })
+        } else {
+          course.value.resources.push({
+            name: dto.fileName,
+            type: dto.mimeType?.includes('pdf') ? 'PDF' : 'Document',
+            size: formatFileSize(dto.fileSize),
+            downloadUrl: dto.downloadUrl,
+          })
+        }
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  input.value = ''
+  uploadingFile.value = false
+}
+
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => {
+      resolve(video.duration)
+      URL.revokeObjectURL(video.src)
+    }
+    video.onerror = () => resolve(0)
+    video.src = URL.createObjectURL(file)
+  })
+}
+
+async function deleteContent(contentId: number) {
+  if (deletingContentId.value !== null) return
+  deletingContentId.value = contentId
+  try {
+    const res = await fetch(`http://localhost:8080/api/courses/content/delete/${contentId}`, { method: 'DELETE' })
+    if (res.ok) {
+      uploadedContents.value = uploadedContents.value.filter(c => c.id !== contentId)
+      if (course.value) {
+        course.value.lessons = course.value.lessons.filter(l => l.id !== contentId)
+        course.value.resources = course.value.resources.filter(r => {
+          const uc = uploadedContents.value.find(u => u.downloadUrl && r.downloadUrl === u.downloadUrl)
+          return r.downloadUrl ? true : true // Keep non-uploaded resources; uploaded ones already filtered
+        })
+        // Also remove from resources by matching downloadUrl
+        const deletedContent = uploadedContents.value.find(c => c.id === contentId)
+        if (!deletedContent) {
+          course.value.resources = course.value.resources.filter(r => {
+            if (!r.downloadUrl) return true
+            return !r.downloadUrl.includes(`/download/${contentId}`)
+          })
+        }
+      }
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    deletingContentId.value = null
+  }
+}
+
+async function uploadCoverImage(event: Event) {
+  const input = event.target as HTMLInputElement
+  if (!input.files?.length || !course.value || uploadingFile.value) return
+  uploadingFile.value = true
+  const file = input.files[0]!
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('type', 'Cover')
+  formData.append('order', '0')
+
+  try {
+    const res = await fetch(`http://localhost:8080/api/courses/content/upload/${course.value.id}`, {
+      method: 'POST',
+      body: formData,
+    })
+    if (res.ok) {
+      const dto = await res.json()
+      course.value.image = 'http://localhost:8080' + dto.downloadUrl
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    input.value = ''
+    uploadingFile.value = false
+  }
+}
 </script>
 
 <template>
@@ -413,10 +596,28 @@ function toggleComplete(idx: number) {
         Back to courses
       </RouterLink>
       <h2 class="topbar-course-name">{{ course.title }}</h2>
-      <span class="online-badge">
-        <span class="online-dot"></span> Online
-      </span>
+      <div class="topbar-right">
+        <button v-if="isOwner && !editMode" class="edit-toggle-btn" @click="enterEditMode">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+          Mode édition
+        </button>
+        <button v-if="editMode" class="edit-toggle-btn edit-toggle-btn--active" @click="cancelEdit">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          Quitter l'édition
+        </button>
+        <span class="online-badge">
+          <span class="online-dot"></span> Online
+        </span>
+      </div>
     </div>
+
+    <!-- ── Body: layout + optional edit sidebar ── -->
+    <div class="course-body" :class="{ 'course-body--editing': editMode }">
 
     <!-- ── Main layout ── -->
     <div class="course-layout">
@@ -729,6 +930,136 @@ function toggleComplete(idx: number) {
 
       </aside>
     </div>
+
+    <!-- ── Edit panel sidebar (owner only) ── -->
+    <aside v-if="editMode" class="edit-panel">
+      <div class="edit-panel-inner">
+        <!-- Course info editing -->
+        <div class="edit-section">
+          <h3 class="edit-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            Informations du cours
+          </h3>
+          <div class="edit-fields">
+            <label class="edit-field">
+              <span>Titre</span>
+              <input v-model="editForm.titre" type="text" />
+            </label>
+            <label class="edit-field">
+              <span>Description</span>
+              <textarea v-model="editForm.description" rows="3"></textarea>
+            </label>
+            <label class="edit-field">
+              <span>Domaine</span>
+              <select v-model="editForm.domain">
+                <option value="" disabled>Choisir un domaine</option>
+                <option value="Programmation">Programmation</option>
+                <option value="Design">Design</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Bureautique">Bureautique</option>
+                <option value="Business">Business</option>
+                <option value="Intelligence Artificielle">Intelligence Artificielle</option>
+              </select>
+            </label>
+            <label class="edit-field">
+              <span>Niveau</span>
+              <select v-model="editForm.niveau">
+                <option value="">Tous niveaux</option>
+                <option value="Débutant">Débutant</option>
+                <option value="Intermédiaire">Intermédiaire</option>
+                <option value="Avancé">Avancé</option>
+              </select>
+            </label>
+            <label class="edit-field">
+              <span>Durée (h)</span>
+              <input v-model.number="editForm.dureeHeures" type="number" min="0" />
+            </label>
+            <button class="edit-save-btn" :disabled="savingInfo" @click="saveInfo">
+              {{ savingInfo ? 'Enregistrement...' : 'Enregistrer' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Cover image -->
+        <div class="edit-section">
+          <h3 class="edit-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            Image de couverture
+          </h3>
+          <div class="edit-cover-col">
+            <img :src="course.image" alt="cover" class="edit-cover-preview" />
+            <label class="edit-upload-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Changer l'image
+              <input type="file" accept="image/*" hidden @change="uploadCoverImage" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Content management -->
+        <div class="edit-section">
+          <h3 class="edit-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Contenu du cours
+          </h3>
+
+          <div class="edit-content-list">
+            <div v-for="content in uploadedContents.filter(c => c.contentType !== 'Cover')" :key="content.id" class="edit-content-item">
+              <div class="edit-content-icon" :class="content.contentType === 'Video' ? 'edit-content-icon--video' : ''">
+                <svg v-if="content.contentType === 'Video'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+              <div class="edit-content-info">
+                <p class="edit-content-name">{{ content.fileName }}</p>
+                <p class="edit-content-meta">{{ content.contentType }} • {{ formatFileSize(content.fileSize) }}</p>
+              </div>
+              <button
+                class="edit-content-delete"
+                :disabled="deletingContentId === content.id"
+                @click="deleteContent(content.id)"
+              >
+                <svg v-if="deletingContentId === content.id" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+              </button>
+            </div>
+            <div v-if="uploadedContents.filter(c => c.contentType !== 'Cover').length === 0" class="edit-content-empty">
+              Aucun contenu uploadé pour ce cours.
+            </div>
+          </div>
+
+          <label class="edit-upload-btn edit-upload-btn--full">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            {{ uploadingFile ? 'Upload en cours...' : 'Ajouter des fichiers' }}
+            <input type="file" multiple accept="video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" hidden @change="uploadNewContent" :disabled="uploadingFile" />
+          </label>
+        </div>
+      </div>
+    </aside>
+
+    </div><!-- /course-body -->
   </div>
 </template>
 
@@ -785,11 +1116,23 @@ function toggleComplete(idx: number) {
   border-radius: 50%;
 }
 
+/* ── Body wrapper (layout + edit sidebar) ── */
+.course-body {
+  display: flex;
+  gap: 0;
+  transition: all 0.3s ease;
+}
+.course-body--editing {
+  gap: 0;
+}
+
 /* ── Layout ── */
 .course-layout {
   display: grid;
   grid-template-columns: 1fr 340px;
   gap: 1.5rem;
+  flex: 1;
+  min-width: 0;
   max-width: 1280px;
   margin: 0 auto;
   padding: 1.25rem 2rem 3rem;
@@ -1164,6 +1507,10 @@ function toggleComplete(idx: number) {
 .dl-offline-btn:hover { border-color: #10B981; color: #10B981; }
 
 /* Responsive */
+@media (max-width: 1200px) {
+  .course-body { flex-direction: column; }
+  .edit-panel { width: 100% !important; max-height: 50vh; border-left: none; border-top: 2px solid #BFDBFE; }
+}
 @media (max-width: 900px) {
   .course-layout { grid-template-columns: 1fr; }
 }
@@ -1194,4 +1541,254 @@ function toggleComplete(idx: number) {
   text-decoration: none;
 }
 .back-home-link:hover { text-decoration: underline; }
+
+/* ── Topbar right ── */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ── Edit toggle button ── */
+.edit-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  background: #EFF6FF;
+  color: #2563EB;
+  border: 1.5px solid #BFDBFE;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.edit-toggle-btn:hover {
+  background: #DBEAFE;
+  border-color: #93C5FD;
+}
+.edit-toggle-btn--active {
+  background: #FEF2F2;
+  color: #DC2626;
+  border-color: #FECACA;
+}
+.edit-toggle-btn--active:hover {
+  background: #FEE2E2;
+  border-color: #FCA5A5;
+}
+
+/* ── Edit panel (sidebar) ── */
+.edit-panel {
+  width: 380px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #EFF6FF 0%, #F8FAFC 40%, #ECFDF5 100%);
+  border-left: 2px solid #BFDBFE;
+  overflow-y: auto;
+  max-height: calc(100vh - 54px);
+  position: sticky;
+  top: 54px;
+}
+.edit-panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+.edit-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1.5px solid #E5E7EB;
+}
+.edit-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+}
+.edit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.edit-field span {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #374151;
+}
+.edit-field input,
+.edit-field textarea,
+.edit-field select {
+  padding: 0.55rem 0.7rem;
+  border: 1.5px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #111827;
+  background: #fff;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+.edit-field input:focus,
+.edit-field textarea:focus,
+.edit-field select:focus {
+  outline: none;
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+.edit-field textarea {
+  resize: vertical;
+}
+.edit-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  background: #10B981;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: flex-start;
+}
+.edit-save-btn:hover:not(:disabled) {
+  background: #059669;
+}
+.edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Cover editing */
+.edit-cover-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.edit-cover-preview {
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1.5px solid #E5E7EB;
+}
+.edit-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: #F3F4F6;
+  color: #374151;
+  border: 1.5px solid #D1D5DB;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.edit-upload-btn:hover {
+  background: #E5E7EB;
+  border-color: #9CA3AF;
+}
+.edit-upload-btn--full {
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.75rem;
+  background: #ECFDF5;
+  color: #059669;
+  border-color: #A7F3D0;
+}
+.edit-upload-btn--full:hover {
+  background: #D1FAE5;
+  border-color: #6EE7B7;
+}
+
+/* Content list in edit mode */
+.edit-content-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.edit-content-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  background: #FAFAFA;
+}
+.edit-content-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #FEE2E2;
+  color: #DC2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.edit-content-icon--video {
+  background: #EDE9FE;
+  color: #7C3AED;
+}
+.edit-content-info {
+  flex: 1;
+  min-width: 0;
+}
+.edit-content-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.edit-content-meta {
+  font-size: 0.72rem;
+  color: #9CA3AF;
+}
+.edit-content-delete {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1.5px solid #FECACA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.edit-content-delete:hover:not(:disabled) {
+  background: #FEE2E2;
+}
+.edit-content-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.edit-content-empty {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: #9CA3AF;
+  border: 1.5px dashed #E5E7EB;
+  border-radius: 8px;
+}
 </style>

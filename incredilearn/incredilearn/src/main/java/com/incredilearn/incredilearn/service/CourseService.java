@@ -77,6 +77,42 @@ public class CourseService {
         return true;
     }
     
+    public List<CourseDTO> getCoursesForEnseignant(Long enseignantId) {
+        return courseRepository.findByEnseignantId(enseignantId).stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+
+    public boolean deleteCourse(Long courseId, Long enseignantId) {
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course == null || course.getEnseignant() == null || !course.getEnseignant().getId().equals(enseignantId)) {
+            return false;
+        }
+        // Remove enrollment associations
+        for (User u : course.getEtudiants()) {
+            u.getCoursesInscrits().remove(course);
+        }
+        course.getEtudiants().clear();
+        // Delete associated content
+        courseContentRepository.deleteAll(courseContentRepository.findByCourseIdOrderBySortOrderAsc(courseId));
+        courseRepository.delete(course);
+        return true;
+    }
+
+    public CourseDTO updateCourse(Long courseId, CreateCourseRequest request) {
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course == null || course.getEnseignant() == null || !course.getEnseignant().getId().equals(request.getEnseignantId())) {
+            return null;
+        }
+        course.setTitre(request.getTitre());
+        course.setDescription(request.getDescription());
+        course.setDomain(request.getDomain());
+        course.setNiveau(request.getNiveau());
+        course.setDureeHeures(request.getDureeHeures());
+        Course saved = courseRepository.save(course);
+        return convertToDTO(saved);
+    }
+
     public CourseDTO createCourse(CreateCourseRequest request) {
         User enseignant = userRepository.findById(request.getEnseignantId()).orElse(null);
         if (enseignant == null) {

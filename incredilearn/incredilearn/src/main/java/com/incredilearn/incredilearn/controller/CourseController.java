@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -79,6 +80,32 @@ public class CourseController {
         }
     }
     
+    @GetMapping("/enseignant/{userId}")
+    public ResponseEntity<List<CourseDTO>> getCoursesEnseignant(@PathVariable Long userId) {
+        List<CourseDTO> courses = courseService.getCoursesForEnseignant(userId);
+        return ResponseEntity.ok(courses);
+    }
+
+    @DeleteMapping("/{courseId}")
+    public ResponseEntity<String> deleteCourse(@PathVariable Long courseId, @RequestParam("enseignantId") Long enseignantId) {
+        boolean success = courseService.deleteCourse(courseId, enseignantId);
+        if (success) {
+            return ResponseEntity.ok("Cours supprimé");
+        } else {
+            return ResponseEntity.badRequest().body("Erreur lors de la suppression");
+        }
+    }
+
+    @PutMapping("/{courseId}")
+    public ResponseEntity<CourseDTO> updateCourse(@PathVariable Long courseId, @RequestBody CreateCourseRequest request) {
+        CourseDTO updated = courseService.updateCourse(courseId, request);
+        if (updated != null) {
+            return ResponseEntity.ok(updated);
+        } else {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PostMapping("/create")
     public ResponseEntity<CourseDTO> createCourse(@RequestBody CreateCourseRequest request) {
         CourseDTO created = courseService.createCourse(request);
@@ -111,6 +138,16 @@ public class CourseController {
     public ResponseEntity<List<CourseContentDTO>> getCourseContents(@PathVariable Long courseId) {
         List<CourseContentDTO> contents = courseContentService.getContentsByCourse(courseId);
         return ResponseEntity.ok(contents);
+    }
+
+    @DeleteMapping("/content/delete/{contentId}")
+    public ResponseEntity<String> deleteContent(@PathVariable Long contentId) {
+        boolean success = courseContentService.deleteContent(contentId);
+        if (success) {
+            return ResponseEntity.ok("Contenu supprimé");
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
     
     @GetMapping("/content/download/{contentId}")

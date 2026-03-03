@@ -98,6 +98,22 @@ public class CourseContentService {
         return null;
     }
 
+    public boolean deleteContent(Long contentId) {
+        CourseContent content = courseContentRepository.findById(contentId).orElse(null);
+        if (content == null) {
+            return false;
+        }
+        // Delete the physical file
+        try {
+            Path filePath = this.uploadDir.resolve(content.getStoredFileName()).normalize();
+            Files.deleteIfExists(filePath);
+        } catch (IOException e) {
+            // Log but continue with DB deletion
+        }
+        courseContentRepository.delete(content);
+        return true;
+    }
+
     public String getFileName(Long contentId) {
         CourseContent content = courseContentRepository.findById(contentId).orElse(null);
         return content != null ? content.getFileName() : null;
