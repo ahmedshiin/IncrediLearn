@@ -47,6 +47,9 @@ public class Course {
     @Column(name = "niveau")
     private String niveau; // Débutant, Intermédiaire, Avancé
     
+    @Column(name = "image_url")
+    private String imageUrl;
+    
     // Constructeurs
     public Course() {
         this.createdAt = LocalDateTime.now();
@@ -130,5 +133,13 @@ public class Course {
     
     public void setNiveau(String niveau) {
         this.niveau = niveau;
+    }
+    
+    public String getImageUrl() {
+        return imageUrl;
+    }
+    
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

@@ -65,6 +65,12 @@ const router = createRouter({
       component: () => import('../views/CreateCourseView.vue'),
     },
     {
+      path: '/mes-cours-enseignant',
+      name: 'mes-cours-enseignant',
+      component: () => import('../views/MesCoursEnseignantView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/messagerie',
       name: 'messagerie',
       component: () => import('../views/MessagerieView.vue'),
