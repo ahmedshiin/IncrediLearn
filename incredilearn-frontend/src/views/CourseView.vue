@@ -752,6 +752,7 @@ async function uploadCoverImage(event: Event) {
             <p class="lesson-instructor">{{ course.instructor }} • {{ course.category }}</p>
           </div>
           <div class="enroll-wrap">
+            <template v-if="authStore.userRole === 'etudiant'">
             <span v-if="enrollMsg" class="enroll-msg" :class="{ 'enroll-msg--success': isEnrolled || enrollMsg.startsWith('D') }">{{ enrollMsg }}</span>
             <button
               v-if="!isEnrolled"
@@ -788,6 +789,7 @@ async function uploadCoverImage(event: Event) {
               </svg>
               {{ enrollLoading ? 'En cours…' : 'Déjà inscrit — Se désinscrire' }}
             </button>
+            </template>
 
             <!-- ── Star rating (visible only when enrolled) ── -->
             <div v-if="isEnrolled" class="course-rating">
