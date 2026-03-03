@@ -97,6 +97,15 @@ onUnmounted(() => {
             </svg>
             <span class="nav-icon-label">Messages</span>
           </RouterLink>
+
+          <!-- Admin -->
+          <RouterLink v-if="authStore.userRole === 'admin'" to="/admin" class="nav-icon-btn nav-icon-btn--admin" title="Administration"
+            :class="{ active: route.path === '/admin' }">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span class="nav-icon-label">Admin</span>
+          </RouterLink>
         </div>
 
         <!-- Auth - Non connecté -->
@@ -266,6 +275,21 @@ onUnmounted(() => {
 
 .nav-icon-label {
   white-space: nowrap;
+}
+
+/* Admin icon variant */
+.nav-icon-btn--admin {
+  color: #7C3AED;
+}
+
+.nav-icon-btn--admin:hover {
+  color: #6D28D9;
+  background: #F5F3FF;
+}
+
+.nav-icon-btn--admin.active {
+  color: #6D28D9;
+  background: #EDE9FE;
 }
 
 /* Auth */
