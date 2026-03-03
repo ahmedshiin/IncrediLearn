@@ -1,0 +1,184 @@
+package com.incredilearn.incredilearn.service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.incredilearn.incredilearn.dto.CourseDTO;
+import com.incredilearn.incredilearn.dto.CreateCourseRequest;
+import com.incredilearn.incredilearn.model.Course;
+import com.incredilearn.incredilearn.model.Quiz;
+import com.incredilearn.incredilearn.model.User;
+import com.incredilearn.incredilearn.repository.CourseContentRepository;
+import com.incredilearn.incredilearn.repository.CourseQuestionRepository;
+import com.incredilearn.incredilearn.repository.CourseRepository;
+import com.incredilearn.incredilearn.repository.QuizAttemptRepository;
+import com.incredilearn.incredilearn.repository.QuizRepository;
+import com.incredilearn.incredilearn.repository.UserRepository;
+
+@Service
+public class CourseService {
+    
+    private final CourseRepository courseRepository;
+    private final UserRepository userRepository;
+    private final CourseContentRepository courseContentRepository;
+    private final QuizRepository quizRepository;
+    private final QuizAttemptRepository quizAttemptRepository;
+    private final CourseQuestionRepository courseQuestionRepository;
+    
+    public CourseService(CourseRepository courseRepository, UserRepository userRepository,
+                         CourseContentRepository courseContentRepository, QuizRepository quizRepository,
+                         QuizAttemptRepository quizAttemptRepository, CourseQuestionRepository courseQuestionRepository) {
+        this.courseRepository = courseRepository;
+        this.userRepository = userRepository;
+        this.courseContentRepository = courseContentRepository;
+        this.quizRepository = quizRepository;
+        this.quizAttemptRepository = quizAttemptRepository;
+        this.courseQuestionRepository = courseQuestionRepository;
+    }
+    
+    public List<CourseDTO> getMesCoursForUser(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return List.of();
+        }
+        
+        return user.getCoursesInscrits().stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+    
+    public List<CourseDTO> getAllCourses() {
+        return courseRepository.findAll().stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+    
+    public CourseDTO getCourseById(Long courseId) {
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course == null) {
+            return null;
+        }
+        return convertToDTO(course);
+    }
+    
+    public boolean enrollUserInCourse(Long userId, Long courseId) {
+        User user = userRepository.findById(userId).orElse(null);
+        Course course = courseRepository.findById(courseId).orElse(null);
+        
+        if (user == null || course == null) {
+            return false;
+        }
+        
+        user.getCoursesInscrits().add(course);
+        userRepository.save(user);
+        return true;
+    }
+
+    public boolean unenrollUserFromCourse(Long userId, Long courseId) {
+        User user = userRepository.findById(userId).orElse(null);
+        Course course = courseRepository.findById(courseId).orElse(null);
+
+        if (user == null || course == null) {
+            return false;
+        }
+
+        user.getCoursesInscrits().remove(course);
+        userRepository.save(user);
+        return true;
+    }
+    
+    public List<CourseDTO> getCoursesForEnseignant(Long enseignantId) {
+        return courseRepository.findByEnseignantId(enseignantId).stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public boolean deleteCourse(Long courseId, Long enseignantId) {
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course == null || course.getEnseignant() == null || !course.getEnseignant().getId().equals(enseignantId)) {
+            return false;
+        }
+        // Remove enrollment associations
+        for (User u : course.getEtudiants()) {
+            u.getCoursesInscrits().remove(course);
+        }
+        course.getEtudiants().clear();
+
+        // Delete quiz attempts then quizzes
+        List<Quiz> quizzes = quizRepository.findByCourseId(courseId);
+        for (Quiz quiz : quizzes) {
+            quizAttemptRepository.deleteByQuizId(quiz.getId());
+        }
+        quizRepository.deleteAll(quizzes);
+
+        // Delete course questions (replies cascade via CascadeType.ALL)
+        courseQuestionRepository.deleteAll(courseQuestionRepository.findByCourseIdOrderByCreatedAtDesc(courseId));
+
+        // Delete associated content
+        courseContentRepository.deleteAll(courseContentRepository.findByCourseIdOrderBySortOrderAsc(courseId));
+        courseRepository.delete(course);
+        return true;
+    }
+
+    public CourseDTO updateCourse(Long courseId, CreateCourseRequest request) {
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course == null || course.getEnseignant() == null || !course.getEnseignant().getId().equals(request.getEnseignantId())) {
+            return null;
+        }
+        course.setTitre(request.getTitre());
+        course.setDescription(request.getDescription());
+        course.setDomain(request.getDomain());
+        course.setNiveau(request.getNiveau());
+        course.setDureeHeures(request.getDureeHeures());
+        Course saved = courseRepository.save(course);
+        return convertToDTO(saved);
+    }
+
+    public CourseDTO createCourse(CreateCourseRequest request) {
+        User enseignant = userRepository.findById(request.getEnseignantId()).orElse(null);
+        if (enseignant == null) {
+            return null;
+        }
+        
+        Course course = new Course();
+        course.setTitre(request.getTitre());
+        course.setDescription(request.getDescription());
+        course.setDomain(request.getDomain());
+        course.setNiveau(request.getNiveau());
+        course.setDureeHeures(request.getDureeHeures());
+        course.setEnseignant(enseignant);
+        
+        Course saved = courseRepository.save(course);
+        return convertToDTO(saved);
+    }
+    
+    private CourseDTO convertToDTO(Course course) {
+        CourseDTO dto = new CourseDTO();
+        dto.setId(course.getId());
+        dto.setTitre(course.getTitre());
+        dto.setDescription(course.getDescription());
+        dto.setDomain(course.getDomain());
+        dto.setDureeHeures(course.getDureeHeures());
+        dto.setNiveau(course.getNiveau());
+        dto.setNombreEtudiants(course.getEtudiants().size());
+        dto.setCreatedAt(course.getCreatedAt());
+        dto.setImageUrl(course.getImageUrl());
+        // Count only Video content items
+        long lecons = courseContentRepository.countByCourseIdAndContentType(course.getId(), "Video");
+        dto.setNombreLecons((int) lecons);
+        // Sum video durations
+        Double totalSeconds = courseContentRepository.sumDurationSecondsByCourseId(course.getId());
+        dto.setDureeTotaleSecondes(totalSeconds != null ? totalSeconds.longValue() : 0L);
+        
+        if (course.getEnseignant() != null) {
+            dto.setEnseignantNom(course.getEnseignant().getNom());
+            dto.setEnseignantId(course.getEnseignant().getId());
+        }
+        
+        return dto;
+    }
+}
