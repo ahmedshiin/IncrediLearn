@@ -71,6 +71,15 @@ function getBadgeClass(niveau: string): string {
   return 'badge-blue'
 }
 
+function formatDuration(totalSeconds: number): string {
+  if (!totalSeconds || totalSeconds <= 0) return '-'
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  if (h > 0 && m > 0) return `${h}h${String(m).padStart(2, '0')}`
+  if (h > 0) return `${h}h`
+  return `${m}min`
+}
+
 onMounted(async () => {
   try {
     const res = await fetch('http://localhost:8080/api/courses')
@@ -81,11 +90,11 @@ onMounted(async () => {
       title: c.titre,
       instructor: c.enseignantNom || 'Instructeur',
       description: c.description || '',
-      duration: c.dureeHeures ? `${c.dureeHeures}h` : '-',
+      duration: formatDuration(c.dureeTotaleSecondes),
       students: c.nombreEtudiants != null ? String(c.nombreEtudiants) : '0',
       badge: c.niveau || 'Débutant',
       badgeClass: getBadgeClass(c.niveau),
-      image: getCourseImage(c.titre, c.domain),
+      image: c.imageUrl ? 'http://localhost:8080' + c.imageUrl : getCourseImage(c.titre, c.domain),
       domain: c.domain || '',
     }))
   } catch (e) {

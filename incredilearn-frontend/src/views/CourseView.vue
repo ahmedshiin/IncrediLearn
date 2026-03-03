@@ -1,17 +1,44 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 
 const route = useRoute()
 const courseId = Number(route.params.id)
 
-const allCourses = [
-  {
-    id: 1,
-    title: 'Introduction à la programmation Python',
-    instructor: 'Dr. Marie Dupont',
-    category: 'Programmation',
-    image: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=900&h=500&fit=crop&q=80',
+/* ── Image mapping by keyword ── */
+const KEYWORD_IMAGES: Record<string, string> = {
+  'python':        'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=900&h=500&fit=crop&q=80',
+  'react':         'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=900&h=500&fit=crop&q=80',
+  'vue':           'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=900&h=500&fit=crop&q=80',
+  'javascript':    'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=900&h=500&fit=crop&q=80',
+  'spring':        'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=900&h=500&fit=crop&q=80',
+  'java':          'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=900&h=500&fit=crop&q=80',
+  'design':        'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=900&h=500&fit=crop&q=80',
+  'marketing':     'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=900&h=500&fit=crop&q=80',
+  'excel':         'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=900&h=500&fit=crop&q=80',
+  'bureautique':   'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=900&h=500&fit=crop&q=80',
+  'business':      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=900&h=500&fit=crop&q=80',
+  'intelligence':  'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=900&h=500&fit=crop&q=80',
+  'tensorflow':    'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=900&h=500&fit=crop&q=80',
+  'machine':       'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=900&h=500&fit=crop&q=80',
+  'photo':         'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=900&h=500&fit=crop&q=80',
+  'cyber':         'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=900&h=500&fit=crop&q=80',
+  'securit':       'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=900&h=500&fit=crop&q=80',
+  'docker':        'https://images.unsplash.com/photo-1605745341112-85968b19335b?w=900&h=500&fit=crop&q=80',
+  'sql':           'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=900&h=500&fit=crop&q=80',
+  'programmation': 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=900&h=500&fit=crop&q=80',
+  'default':       'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=900&h=500&fit=crop&q=80',
+}
+
+function getCourseImage(titre: string, domain: string): string {
+  const text = ((titre || '') + ' ' + (domain || '')).toLowerCase()
+  const key = Object.keys(KEYWORD_IMAGES).find(k => k !== 'default' && text.includes(k)) || 'default'
+  return KEYWORD_IMAGES[key] as string
+}
+
+/* ── Hardcoded lessons/resources lookup for known courses ── */
+const hardcodedLessons: Record<number, { lessons: { id: number; title: string; duration: string; description: string }[]; resources: { name: string; type: string; size: string }[] }> = {
+  1: {
     lessons: [
       { id: 1, title: 'Introduction et installation',    duration: '15:32', description: "Python est un langage de programmation interprété, de haut niveau et polyvalent. Il met l'accent sur la lisibilité du code avec son utilisation notable de l'indentation significative." },
       { id: 2, title: 'Variables et types de données',   duration: '22:15', description: "En Python, les variables sont créées lors de l'assignation d'une valeur. Les types principaux incluent : int (entiers), float (décimaux), str (chaînes de caractères), bool (booléens), list, tuple, dict." },
@@ -21,12 +48,7 @@ const allCourses = [
       { name: 'Introduction à Python - Guide complet', type: 'PDF', size: '2.4 MB' },
     ],
   },
-  {
-    id: 2,
-    title: 'Design UI/UX Moderne',
-    instructor: 'Sophie Martin',
-    category: 'Design',
-    image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=900&h=500&fit=crop&q=80',
+  2: {
     lessons: [
       { id: 1, title: 'Introduction au Design Thinking',  duration: '12:00', description: "Le Design Thinking est une approche centrée sur l'utilisateur qui résout des problèmes complexes en suivant 5 étapes : empathie, définition, idéation, prototypage et test." },
       { id: 2, title: 'Principes de UI',                  duration: '18:30', description: "Les principes fondamentaux de l'interface utilisateur incluent la hiérarchie visuelle, la cohérence, le contraste, l'alignement et l'espace négatif pour créer des designs lisibles." },
@@ -36,12 +58,7 @@ const allCourses = [
       { name: 'UI Kit Complet', type: 'PDF', size: '5.1 MB' },
     ],
   },
-  {
-    id: 3,
-    title: 'Marketing Digital Avancé',
-    instructor: 'Thomas Bernard',
-    category: 'Marketing',
-    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=900&h=500&fit=crop&q=80',
+  3: {
     lessons: [
       { id: 1, title: 'Stratégie de contenu',   duration: '14:00', description: "Une stratégie de contenu efficace définit les objectifs, le public cible, les types de contenu et les canaux de distribution pour maximiser l'engagement et la conversion." },
       { id: 2, title: 'SEO & SEM',              duration: '20:00', description: "Le SEO (référencement naturel) améliore la visibilité organique tandis que le SEM (référencement payant) utilise les annonces Google Ads pour attirer du trafic qualifié." },
@@ -51,12 +68,7 @@ const allCourses = [
       { name: 'Guide Marketing Digital', type: 'PDF', size: '3.2 MB' },
     ],
   },
-  {
-    id: 4,
-    title: 'Excel pour Professionnels',
-    instructor: 'Marc Dubois',
-    category: 'Bureautique',
-    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=900&h=500&fit=crop&q=80',
+  4: {
     lessons: [
       { id: 1, title: 'Formules avancées',           duration: '18:00', description: "Apprenez les formules complexes : RECHERCHEV, INDEX/EQUIV, SI.CONDITIONS, SOMME.SI.ENS. Ces fonctions automatisent les calculs et transforment vos feuilles de calcul en outils puissants." },
       { id: 2, title: 'Tableaux croisés dynamiques', duration: '22:00', description: "Les TCD permettent d'analyser rapidement de grandes quantités de données. Apprenez à les créer, les filtrer, les grouper et à créer des graphiques croisés dynamiques." },
@@ -66,12 +78,7 @@ const allCourses = [
       { name: 'Fichiers Excel exercices', type: 'PDF', size: '1.8 MB' },
     ],
   },
-  {
-    id: 10,
-    title: 'Intelligence Artificielle avec TensorFlow',
-    instructor: 'Dr. Jean Leclerc',
-    category: 'Programmation',
-    image: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=900&h=500&fit=crop&q=80',
+  10: {
     lessons: [
       { id: 1, title: 'Introduction au Machine Learning', duration: '20:00', description: "Le Machine Learning permet aux ordinateurs d'apprendre sans être explicitement programmés. Découvrez les types d'apprentissage : supervisé, non supervisé et par renforcement." },
       { id: 2, title: 'Réseaux de neurones',              duration: '25:00', description: "Les réseaux de neurones artificiels s'inspirent du cerveau humain. Apprenez les couches (input, hidden, output), les fonctions d'activation et la rétropropagation." },
@@ -81,12 +88,7 @@ const allCourses = [
       { name: 'Guide TensorFlow', type: 'PDF', size: '4.0 MB' },
     ],
   },
-  {
-    id: 11,
-    title: 'Développement Web React',
-    instructor: 'Claire Rousseau',
-    category: 'Programmation',
-    image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=900&h=500&fit=crop&q=80',
+  11: {
     lessons: [
       { id: 1, title: 'Composants & Props',  duration: '15:00', description: "React est basé sur des composants réutilisables. Les props permettent de passer des données du composant parent vers l'enfant, favorisant la composition et la réutilisabilité." },
       { id: 2, title: 'State & Hooks',       duration: '20:00', description: "Les hooks React (useState, useEffect, useContext) permettent d'ajouter des fonctionnalités comme l'état local et les effets de bord dans les composants fonctionnels." },
@@ -96,12 +98,7 @@ const allCourses = [
       { name: 'React Cheat Sheet', type: 'PDF', size: '1.5 MB' },
     ],
   },
-  {
-    id: 12,
-    title: 'Photographie Créative',
-    instructor: 'Émilie Laurent',
-    category: 'Art',
-    image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=900&h=500&fit=crop&q=80',
+  12: {
     lessons: [
       { id: 1, title: 'Composition & Cadrage',  duration: '12:00', description: "Maîtrisez la règle des tiers, les lignes directrices, le cadrage naturel et la symétrie pour créer des compositions visuellement équilibrées et attractives." },
       { id: 2, title: 'Lumière & Exposition',   duration: '14:00', description: "Comprenez le triangle d'exposition (ISO, vitesse, ouverture) et apprenez à exploiter la lumière naturelle et artificielle pour obtenir des photos parfaitement exposées." },
@@ -111,12 +108,7 @@ const allCourses = [
       { name: 'Guide Photo Créative', type: 'PDF', size: '2.9 MB' },
     ],
   },
-  {
-    id: 13,
-    title: 'Cybersécurité Fondamentale',
-    instructor: 'Dr. Antoine Moreau',
-    category: 'Sécurité',
-    image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=900&h=500&fit=crop&q=80',
+  13: {
     lessons: [
       { id: 1, title: 'Introduction à la cybersécurité', duration: '16:00', description: "La cybersécurité protège les systèmes informatiques contre les cybermenaces. Découvrez les types d'attaques (phishing, malware, DDoS) et les principes de défense en profondeur." },
       { id: 2, title: 'Cryptographie',                   duration: '22:00', description: "La cryptographie garantit la confidentialité et l'intégrité des données. Apprenez le chiffrement symétrique (AES), asymétrique (RSA) et les fonctions de hachage (SHA-256)." },
@@ -126,11 +118,157 @@ const allCourses = [
       { name: 'Guide Cybersécurité', type: 'PDF', size: '3.7 MB' },
     ],
   },
-]
+}
 
-const course = computed(() => allCourses.find(c => c.id === courseId) ?? allCourses[0])
+/* ── Default lessons/resources for courses without hardcoded content ── */
+function getDefaultContent(title: string) {
+  return {
+    lessons: [
+      { id: 1, title: 'Introduction au cours',     duration: '15:00', description: `Découvrez les objectifs, le plan et les prérequis de ce cours : ${title}.` },
+      { id: 2, title: 'Concepts fondamentaux',       duration: '20:00', description: 'Exploration des notions essentielles et des principes de base du domaine.' },
+      { id: 3, title: 'Mise en pratique',           duration: '25:00', description: 'Application concrète des concepts à travers des exercices et des projets pratiques.' },
+    ],
+    resources: [
+      { name: 'Support de cours', type: 'PDF', size: '1.0 MB' },
+    ],
+  }
+}
+
+/* ── Course state (fetched from API) ── */
+interface CourseData {
+  id: number
+  title: string
+  instructor: string
+  category: string
+  image: string
+  lessons: { id: number; title: string; duration: string; description: string }[]
+  resources: { name: string; type: string; size: string; downloadUrl?: string }[]
+}
+
+interface ContentFile {
+  id: number
+  fileName: string
+  contentType: string // "Video" | "Document"
+  mimeType: string
+  fileSize: number
+  sortOrder: number
+  downloadUrl: string
+}
+
+const course = ref<CourseData | null>(null)
+const loading = ref(true)
+const uploadedContents = ref<ContentFile[]>([])
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  if (bytes >= 1024) return Math.round(bytes / 1024) + ' KB'
+  return bytes + ' B'
+}
+
+onMounted(async () => {
+  try {
+    const res = await fetch(`http://localhost:8080/api/courses/${courseId}`)
+    if (!res.ok) throw new Error('Cours introuvable')
+    const data = await res.json()
+
+    // Fetch uploaded course contents from API
+    let apiContents: ContentFile[] = []
+    try {
+      const contentRes = await fetch(`http://localhost:8080/api/courses/content/${courseId}`)
+      if (contentRes.ok) {
+        apiContents = await contentRes.json()
+        uploadedContents.value = apiContents
+      }
+    } catch { /* ignore */ }
+
+    // Build lessons: use hardcoded if available, or uploaded videos, or defaults
+    const hardcoded = hardcodedLessons[courseId]
+    let lessons: CourseData['lessons']
+    let resources: CourseData['resources']
+
+    if (hardcoded) {
+      lessons = hardcoded.lessons
+      resources = hardcoded.resources
+    } else {
+      // Use uploaded videos as lessons
+      const uploadedVideos = apiContents.filter(c => c.contentType === 'Video')
+      const uploadedDocs = apiContents.filter(c => c.contentType === 'Document')
+
+      if (uploadedVideos.length > 0) {
+        lessons = uploadedVideos.map((v, i) => ({
+          id: v.id,
+          title: v.fileName.replace(/\.[^.]+$/, ''),
+          duration: '-',
+          description: `Vidéo du cours : ${v.fileName}`,
+        }))
+      } else {
+        lessons = getDefaultContent(data.titre).lessons
+      }
+
+      if (uploadedDocs.length > 0) {
+        resources = uploadedDocs.map(d => ({
+          name: d.fileName,
+          type: d.mimeType?.includes('pdf') ? 'PDF' : 'Document',
+          size: formatFileSize(d.fileSize),
+          downloadUrl: d.downloadUrl,
+        }))
+      } else if (!hardcoded) {
+        resources = getDefaultContent(data.titre).resources
+      } else {
+        resources = []
+      }
+    }
+
+    // If there are uploaded docs, add them to resources even for hardcoded courses
+    if (hardcoded && apiContents.length > 0) {
+      const uploadedDocs = apiContents.filter(c => c.contentType === 'Document')
+      const uploadedVideos = apiContents.filter(c => c.contentType === 'Video')
+      for (const d of uploadedDocs) {
+        resources.push({
+          name: d.fileName,
+          type: d.mimeType?.includes('pdf') ? 'PDF' : 'Document',
+          size: formatFileSize(d.fileSize),
+          downloadUrl: d.downloadUrl,
+        })
+      }
+      for (const v of uploadedVideos) {
+        lessons.push({
+          id: v.id,
+          title: v.fileName.replace(/\.[^.]+$/, ''),
+          duration: '-',
+          description: `Vidéo du cours : ${v.fileName}`,
+        })
+      }
+    }
+
+    course.value = {
+      id: data.id,
+      title: data.titre,
+      instructor: data.enseignantNom || 'Instructeur',
+      category: data.domain || '',
+      image: data.imageUrl ? 'http://localhost:8080' + data.imageUrl : getCourseImage(data.titre, data.domain),
+      lessons,
+      resources,
+    }
+  } catch (e) {
+    console.error('Erreur chargement cours', e)
+  } finally {
+    loading.value = false
+  }
+})
 
 const activeLesson  = ref(0)
+
+/* ── Compute video URL for active lesson (if uploaded video) ── */
+const activeLessonVideoUrl = computed(() => {
+  if (!course.value) return null
+  const lesson = course.value.lessons[activeLesson.value]
+  if (!lesson) return null
+  // Check if this lesson id matches an uploaded video
+  const vid = uploadedContents.value.find(c => c.contentType === 'Video' && c.id === lesson.id)
+  if (vid) return 'http://localhost:8080' + vid.downloadUrl
+  return null
+})
 const activeTab     = ref<'resources' | 'summary' | 'discussion' | 'live'>('resources')
 const selectedSections = ref<number[]>([])
 const generatedSummary = ref('')
@@ -174,7 +312,19 @@ function toggleComplete(idx: number) {
 </script>
 
 <template>
-  <div v-if="course" class="course-page">
+  <!-- Loading -->
+  <div v-if="loading" class="course-loading">
+    <div class="loading-spinner"></div>
+    <p>Chargement du cours...</p>
+  </div>
+
+  <!-- Course not found -->
+  <div v-else-if="!course" class="course-loading">
+    <p>Ce cours est introuvable.</p>
+    <RouterLink to="/" class="back-home-link">Retour à l'accueil</RouterLink>
+  </div>
+
+  <div v-else class="course-page">
 
     <!-- ── Top bar ── -->
     <div class="topbar">
@@ -185,6 +335,7 @@ function toggleComplete(idx: number) {
         </svg>
         Back to courses
       </RouterLink>
+      <h2 class="topbar-course-name">{{ course.title }}</h2>
       <span class="online-badge">
         <span class="online-dot"></span> Online
       </span>
@@ -198,39 +349,23 @@ function toggleComplete(idx: number) {
 
         <!-- Video player -->
         <div class="video-wrap">
-          <img :src="course.image" :alt="course.title" class="video-thumb" />
-          <button class="play-btn" aria-label="Lire la leçon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-            </svg>
-          </button>
-          <!-- Controls bar -->
-          <div class="video-controls">
-            <div class="controls-left">
-              <button class="ctrl-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
-              </button>
-              <button class="ctrl-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              </button>
-              <button class="ctrl-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-              </button>
-              <button class="ctrl-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-              </button>
-            </div>
-            <div class="progress-bar-wrap">
-              <div class="progbar"><div class="progbar-fill" style="width:0%"></div></div>
-              <span class="time-label">0:00 / 0:10</span>
-            </div>
-            <div class="controls-right">
-              <span class="lesson-label-ctrl">{{ course.lessons[activeLesson].title }}</span>
-              <button class="ctrl-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-              </button>
-            </div>
-          </div>
+          <!-- Uploaded video player -->
+          <video
+            v-if="activeLessonVideoUrl"
+            class="video-thumb"
+            :src="activeLessonVideoUrl"
+            controls
+            style="object-fit: contain; background: #000;"
+          />
+          <!-- Fallback image thumbnail -->
+          <template v-else>
+            <img :src="course.image" :alt="course.title" class="video-thumb" />
+            <button class="play-btn" aria-label="Lire la leçon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </button>
+          </template>
         </div>
 
         <!-- Lesson title / meta -->
@@ -317,7 +452,22 @@ function toggleComplete(idx: number) {
               <p class="resource-name">{{ res.name }}</p>
               <p class="resource-meta">{{ res.type }} • {{ res.size }}</p>
             </div>
-            <button class="dl-btn">
+            <a
+              v-if="res.downloadUrl"
+              :href="'http://localhost:8080' + res.downloadUrl"
+              class="dl-btn"
+              target="_blank"
+              download
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Télécharger
+            </a>
+            <button v-else class="dl-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -500,6 +650,18 @@ function toggleComplete(idx: number) {
   transition: color 0.15s;
 }
 .back-link:hover { color: #10B981; }
+.topbar-course-name {
+  flex: 1;
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
 .online-badge {
   display: flex;
   align-items: center;
@@ -559,63 +721,7 @@ function toggleComplete(idx: number) {
 }
 .play-btn:hover { background: #059669; transform: translate(-50%, -50%) scale(1.07); }
 
-/* Controls bar */
-.video-controls {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
-  padding: 0.6rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.controls-left  { display: flex; gap: 0.4rem; }
-.controls-right { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
-.ctrl-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.2rem;
-  display: flex;
-  align-items: center;
-  opacity: 0.85;
-  transition: opacity 0.15s;
-}
-.ctrl-btn:hover { opacity: 1; }
-.progress-bar-wrap {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.progbar {
-  flex: 1;
-  height: 3px;
-  background: rgba(255,255,255,0.35);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.progbar-fill {
-  height: 100%;
-  background: #10B981;
-  border-radius: 2px;
-}
-.time-label {
-  font-size: 0.72rem;
-  color: white;
-  white-space: nowrap;
-}
-.lesson-label-ctrl {
-  font-size: 0.72rem;
-  color: #10B981;
-  font-weight: 500;
-  white-space: nowrap;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+
 
 /* ── Lesson meta ── */
 .lesson-meta {
@@ -936,4 +1042,31 @@ function toggleComplete(idx: number) {
 @media (max-width: 900px) {
   .course-layout { grid-template-columns: 1fr; }
 }
+
+/* Loading state */
+.course-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 1rem;
+  color: #6B7280;
+  font-size: 0.95rem;
+}
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #E5E7EB;
+  border-top-color: #10B981;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.back-home-link {
+  color: #10B981;
+  font-weight: 600;
+  text-decoration: none;
+}
+.back-home-link:hover { text-decoration: underline; }
 </style>

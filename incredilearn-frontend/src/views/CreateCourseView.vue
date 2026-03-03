@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 /* ── Form state ── */
 const courseTitle   = ref('')
@@ -12,6 +14,11 @@ const level         = ref('')
 const coverImage    = ref<File | null>(null)
 const coverPreview  = ref('')
 const draggingCover = ref(false)
+const isSubmitting  = ref(false)
+const errorMsg      = ref('')
+const showSuccessModal = ref(false)
+
+const dureeHeures = ref<number | null>(null)
 
 const categories = ['Programmation', 'Design', 'Marketing', 'Bureautique', 'Business', 'Intelligence Artificielle']
 const levels     = ['Débutant', 'Intermédiaire', 'Avancé']
@@ -23,12 +30,10 @@ interface ContentItem {
   type: 'Video' | 'Document'
   size: string
   file?: File
+  duration?: number // seconds
 }
-const contentItems = ref<ContentItem[]>([
-  { id: 1, name: 'Introduction.mp4',    type: 'Video',    size: '45 MB' },
-  { id: 2, name: 'Course Overview.pdf', type: 'Document', size: '2.3 MB' },
-])
-let nextId = 3
+const contentItems = ref<ContentItem[]>([])
+let nextId = 1
 
 /* ── Cover image drop ── */
 function onCoverDrop(e: DragEvent) {
@@ -52,12 +57,28 @@ const docInput   = ref<HTMLInputElement | null>(null)
 function addVideo() { videoInput.value?.click() }
 function addDocument() { docInput.value?.click() }
 
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src)
+      resolve(video.duration)
+    }
+    video.onerror = () => resolve(0)
+    video.src = URL.createObjectURL(file)
+  })
+}
+
 function onVideoAdded(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
   const sizeKB = file.size / 1024
   const sizeStr = sizeKB > 1024 ? `${(sizeKB/1024).toFixed(1)} MB` : `${Math.round(sizeKB)} KB`
-  contentItems.value.push({ id: nextId++, name: file.name, type: 'Video', size: sizeStr, file })
+  const item: ContentItem = { id: nextId++, name: file.name, type: 'Video', size: sizeStr, file }
+  contentItems.value.push(item)
+  // Extract video duration asynchronously
+  getVideoDuration(file).then(dur => { item.duration = dur })
   ;(e.target as HTMLInputElement).value = ''
 }
 function onDocAdded(e: Event) {
@@ -89,12 +110,90 @@ function onItemDragOver(e: DragEvent, idx: number) {
 function onItemDragEnd() { draggedIdx.value = null }
 
 /* ── Submit ── */
-function createCourse() {
+async function createCourse() {
+  errorMsg.value = ''
+
   if (!courseTitle.value.trim()) {
-    alert('Veuillez saisir un titre de cours.')
+    errorMsg.value = 'Veuillez saisir un titre de cours.'
     return
   }
-  alert('Cours créé avec succès !')
+  if (!category.value) {
+    errorMsg.value = 'Veuillez sélectionner une catégorie.'
+    return
+  }
+  if (!level.value) {
+    errorMsg.value = 'Veuillez sélectionner un niveau.'
+    return
+  }
+  if (!authStore.user?.id) {
+    errorMsg.value = 'Vous devez être connecté pour créer un cours.'
+    return
+  }
+
+  isSubmitting.value = true
+  try {
+    const response = await fetch('http://localhost:8080/api/courses/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        titre: courseTitle.value.trim(),
+        description: description.value.trim(),
+        domain: category.value,
+        niveau: level.value,
+        dureeHeures: dureeHeures.value || null,
+        enseignantId: authStore.user.id,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Erreur lors de la création du cours')
+    }
+
+    const createdCourse = await response.json()
+    const courseId = createdCourse.id
+
+    // Upload cover image if provided
+    if (coverImage.value) {
+      const coverFormData = new FormData()
+      coverFormData.append('file', coverImage.value)
+      coverFormData.append('type', 'Cover')
+      coverFormData.append('order', '0')
+
+      await fetch(`http://localhost:8080/api/courses/content/upload/${courseId}`, {
+        method: 'POST',
+        body: coverFormData,
+      })
+    }
+
+    // Upload each content file
+    const filesWithFile = contentItems.value.filter(item => item.file)
+    for (let i = 0; i < filesWithFile.length; i++) {
+      const item = filesWithFile[i]!
+      if (!item.file) continue
+      const formData = new FormData()
+      formData.append('file', item.file)
+      formData.append('type', item.type)
+      formData.append('order', String(i))
+      if (item.type === 'Video' && item.duration) {
+        formData.append('duration', String(item.duration))
+      }
+
+      await fetch(`http://localhost:8080/api/courses/content/upload/${courseId}`, {
+        method: 'POST',
+        body: formData,
+      })
+    }
+
+    showSuccessModal.value = true
+  } catch (e) {
+    errorMsg.value = e instanceof Error ? e.message : 'Une erreur est survenue.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+function closeSuccessAndRedirect() {
+  showSuccessModal.value = false
   router.push('/')
 }
 </script>
@@ -193,6 +292,17 @@ function createCourse() {
                   stroke="#9CA3AF" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Durée estimée (en heures)</label>
+            <input
+              v-model.number="dureeHeures"
+              class="form-input"
+              type="number"
+              min="1"
+              placeholder="ex: 12"
+            />
           </div>
         </div>
 
@@ -347,22 +457,54 @@ function createCourse() {
           <input ref="docInput"   type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" class="hidden-input" @change="onDocAdded" />
         </div>
 
+        <!-- ════ ERROR MESSAGE ════ -->
+        <div v-if="errorMsg" class="error-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+          {{ errorMsg }}
+        </div>
+
         <!-- ════ ACTION BUTTONS ════ -->
         <div class="actions">
-          <button class="btn-create" @click="createCourse">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/>
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-              <line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-            Create Course
+          <button class="btn-create" :disabled="isSubmitting" @click="createCourse">
+            <template v-if="isSubmitting">
+              <span class="spinner"></span>
+              Création en cours...
+            </template>
+            <template v-else>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Créer le cours
+            </template>
           </button>
-          <button class="btn-cancel" @click="router.back()">Cancel</button>
+          <button class="btn-cancel" @click="router.back()">Annuler</button>
         </div>
 
       </div>
     </main>
+
+    <!-- ════ SUCCESS MODAL ════ -->
+    <Teleport to="body">
+      <div v-if="showSuccessModal" class="modal-overlay" @click.self="closeSuccessAndRedirect">
+        <div class="modal-box modal-box--success">
+          <div class="modal-icon-circle modal-icon-circle--success">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+              stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h3 class="modal-title">Cours créé avec succès !</h3>
+          <p class="modal-desc">Votre cours a bien été ajouté et est désormais visible sur la plateforme.</p>
+          <button class="modal-btn modal-btn--success" @click="closeSuccessAndRedirect">
+            Retour à l'accueil
+          </button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -706,6 +848,11 @@ function createCourse() {
   font-family: inherit;
 }
 .btn-create:hover { background: #059669; box-shadow: 0 4px 14px rgba(16,185,129,0.35); }
+.btn-create:disabled {
+  background: #9CA3AF;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 .btn-cancel {
   padding: 0.85rem 1.75rem;
   background: #fff;
@@ -719,6 +866,98 @@ function createCourse() {
   font-family: inherit;
 }
 .btn-cancel:hover { background: #F9FAFB; border-color: #D1D5DB; }
+
+/* ── Error banner ── */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #FEF2F2;
+  border: 1.5px solid #FECACA;
+  border-radius: 10px;
+  color: #DC2626;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* ── Spinner ── */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Success Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem 2.5rem;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.modal-icon-circle--success {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #D1FAE5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+.modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+.modal-desc {
+  font-size: 0.85rem;
+  color: #6B7280;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+.modal-btn--success {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1.5rem;
+  background: #10B981;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+.modal-btn--success:hover { background: #059669; }
 
 /* ── Responsive ── */
 @media (max-width: 600px) {

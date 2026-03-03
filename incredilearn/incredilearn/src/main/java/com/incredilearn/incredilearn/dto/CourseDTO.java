@@ -1,5 +1,7 @@
 package com.incredilearn.incredilearn.dto;
 
+import java.time.LocalDateTime;
+
 public class CourseDTO {
     private Long id;
     private String titre;
@@ -10,6 +12,10 @@ public class CourseDTO {
     private Integer dureeHeures;
     private String niveau;
     private Integer nombreEtudiants;
+    private LocalDateTime createdAt;
+    private String imageUrl;
+    private Integer nombreLecons;
+    private Long dureeTotaleSecondes;
     
     // Constructeurs
     public CourseDTO() {}
@@ -85,5 +91,37 @@ public class CourseDTO {
     
     public void setNombreEtudiants(Integer nombreEtudiants) {
         this.nombreEtudiants = nombreEtudiants;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public Integer getNombreLecons() {
+        return nombreLecons;
+    }
+
+    public void setNombreLecons(Integer nombreLecons) {
+        this.nombreLecons = nombreLecons;
+    }
+
+    public Long getDureeTotaleSecondes() {
+        return dureeTotaleSecondes;
+    }
+
+    public void setDureeTotaleSecondes(Long dureeTotaleSecondes) {
+        this.dureeTotaleSecondes = dureeTotaleSecondes;
     }
 }

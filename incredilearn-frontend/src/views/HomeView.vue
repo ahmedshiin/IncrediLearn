@@ -58,6 +58,8 @@ interface CourseItem {
   badgeClass: string
   image: string
   domain: string
+  createdAt: string
+  lessons: number
 }
 
 const allCourses = ref<CourseItem[]>([])
@@ -99,6 +101,15 @@ function getBadgeClass(niveau: string): string {
   return 'badge-blue'
 }
 
+function formatDuration(totalSeconds: number): string {
+  if (!totalSeconds || totalSeconds <= 0) return '-'
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  if (h > 0 && m > 0) return `${h}h${String(m).padStart(2, '0')}`
+  if (h > 0) return `${h}h`
+  return `${m}min`
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapCourse(c: any): CourseItem {
   return {
@@ -107,12 +118,14 @@ function mapCourse(c: any): CourseItem {
     instructor: c.enseignantNom || 'Instructeur',
     description: c.description || '',
     rating: 4.7,
-    duration: c.dureeHeures ? `${c.dureeHeures}h` : '-',
+    duration: formatDuration(c.dureeTotaleSecondes),
     students: c.nombreEtudiants != null ? String(c.nombreEtudiants) : '0',
     badge: c.niveau || 'Débutant',
     badgeClass: getBadgeClass(c.niveau),
-    image: getCourseImage(c.titre, c.domain),
+    image: c.imageUrl ? 'http://localhost:8080' + c.imageUrl : getCourseImage(c.titre, c.domain),
     domain: c.domain || '',
+    createdAt: c.createdAt || '',
+    lessons: c.nombreLecons || 0,
   }
 }
 
@@ -184,10 +197,15 @@ const filteredCourses = computed(() => {
 // Cours populaires : les 4 premiers
 const courses = computed(() => filteredCourses.value.slice(0, 4))
 
-// Nouveautés : les 4 suivants (différents des populaires)
+// Nouveautés : triés par date de création (les plus récents en premier)
 const newCourses = computed(() => {
-  const all = filteredCourses.value
-  return all.length > 4 ? all.slice(4, 8) : all.slice(0, 4)
+  const sorted = [...filteredCourses.value].sort((a, b) => {
+    if (!a.createdAt && !b.createdAt) return 0
+    if (!a.createdAt) return 1
+    if (!b.createdAt) return -1
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
+  return sorted.slice(0, 4)
 })
 
 // Recommandés : sélection alternée (un populaire, un nouveau, etc.)
@@ -359,6 +377,16 @@ const recommendedCourses = computed(() => {
                   </svg>
                   {{ course.students }}
                 </span>
+                <span class="meta-dot">•</span>
+                <!-- Lessons -->
+                <span class="meta-item">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="#6B7280" stroke-width="2" stroke-linecap="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                  </svg>
+                  {{ course.lessons }} leçon{{ course.lessons > 1 ? 's' : '' }}
+                </span>
               </div>
             </div>
           </article>
@@ -419,6 +447,16 @@ const recommendedCourses = computed(() => {
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                   </svg>
                   {{ course.students }}
+                </span>
+                <span class="meta-dot">•</span>
+                <!-- Lessons -->
+                <span class="meta-item">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="#6B7280" stroke-width="2" stroke-linecap="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                  </svg>
+                  {{ course.lessons }} leçon{{ course.lessons > 1 ? 's' : '' }}
                 </span>
               </div>
             </div>
@@ -483,6 +521,16 @@ const recommendedCourses = computed(() => {
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                   </svg>
                   {{ course.students }}
+                </span>
+                <span class="meta-dot">•</span>
+                <!-- Lessons -->
+                <span class="meta-item">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="#6B7280" stroke-width="2" stroke-linecap="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                  </svg>
+                  {{ course.lessons }} leçon{{ course.lessons > 1 ? 's' : '' }}
                 </span>
               </div>
             </div>
