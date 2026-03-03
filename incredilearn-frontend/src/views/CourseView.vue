@@ -407,6 +407,7 @@ const activeTab     = ref<'resources' | 'summary' | 'discussion' | 'live' | 'qui
 const selectedSections = ref<number[]>([])
 const generatedSummary = ref('')
 const isGenerating = ref(false)
+const summaryError = ref('')
 
 /* ── Quiz state ── */
 interface QuizOptionI { id: number; texte: string; correct?: boolean }
@@ -689,22 +690,51 @@ function toggleSection(idx: number) {
   const i = selectedSections.value.indexOf(idx)
   if (i === -1) selectedSections.value.push(idx)
   else selectedSections.value.splice(i, 1)
+// Fichiers documents uploadés pour ce cours (PDF, DOCX, etc.)
+const summarizableContents = computed(() =>
+  uploadedContents.value.filter(c => c.contentType === 'Document')
+)
+
+function toggleContent(id: number) {
+  const i = selectedContentIds.value.indexOf(id)
+  if (i === -1) selectedContentIds.value.push(id)
+  else selectedContentIds.value.splice(i, 1)
 }
 function selectAll() {
   if (!course.value) return
-  if (selectedSections.value.length === course.value.lessons.length)
-    selectedSections.value = []
-  else
-    selectedSections.value = course.value.lessons.map((_, i) => i)
+  if (summarizableContents.value.length > 0) {
+    // Mode fichiers uploadés
+    const allIds = summarizableContents.value.map(c => c.id)
+    if (selectedContentIds.value.length === allIds.length)
+      selectedContentIds.value = []
+    else
+      selectedContentIds.value = [...allIds]
+  }
 }
-function generateSummary() {
-  if (selectedSections.value.length === 0) return
+async function generateSummary() {
+  if (selectedContentIds.value.length === 0) return
   isGenerating.value = true
   generatedSummary.value = ''
-  setTimeout(() => {
+  summaryError.value = ''
+  try {
+    const res = await fetch('http://localhost:8080/api/ai/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courseId, contentIds: selectedContentIds.value, lessonDescriptions: [] }),
+    })
+    if (!res.ok) throw new Error(`Erreur serveur : ${res.status}`)
+    const data = await res.json()
+    generatedSummary.value = data.summary ?? 'Aucune réponse reçue.'
+  } catch (e: any) {
+    summaryError.value = e?.message ?? 'Erreur inconnue.'
+  } finally {
     isGenerating.value = false
-    generatedSummary.value = `Ce résumé couvre ${selectedSections.value.length} section(s) du cours. Les leçons sélectionnées abordent les concepts fondamentaux et avancés du domaine, en progressant du général au spécifique. Chaque section renforce les notions précédentes et prépare aux applications pratiques.`
-  }, 1800)
+  }
+}
+function resetSummary() {
+  generatedSummary.value = ''
+  summaryError.value = ''
+  selectedContentIds.value = []
 }
 const completedLessons = ref<number[]>([])
 
@@ -1350,43 +1380,73 @@ async function uploadCoverImage(event: Event) {
             </div>
           </div>
 
+          <div v-if="summaryError" class="summary-error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>{{ summaryError }}</span>
+          </div>
+
           <div v-if="generatedSummary" class="summary-result">
             <p>{{ generatedSummary }}</p>
+            <button class="summary-reset-btn" @click="resetSummary">Nouveau résumé</button>
           </div>
           <template v-else>
-            <div class="summary-select-header">
-              <span class="summary-select-label">Sélectionnez le contenu à résumer</span>
-              <button class="summary-select-all" @click="selectAll">
-                {{ selectedSections.length === course.lessons.length ? 'Tout désélectionner' : 'Tout sélectionner' }}
-              </button>
+
+            <!-- Aucun fichier uploadé -->
+            <div v-if="summarizableContents.length === 0" class="summary-no-content">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                <polyline points="13 2 13 9 20 9"/>
+              </svg>
+              <p>Aucun document uploadé pour ce cours.<br/>Le professeur doit d'abord ajouter des fichiers PDF ou DOCX.</p>
             </div>
 
-            <div class="summary-items">
-              <label
-                v-for="(lesson, idx) in course.lessons"
-                :key="lesson.id"
-                class="summary-item"
-                :class="{ 'summary-item--checked': selectedSections.includes(idx) }"
-              >
-                <input
-                  type="checkbox"
-                  class="summary-checkbox"
-                  :checked="selectedSections.includes(idx)"
-                  @change="toggleSection(idx)"
-                />
-                <div class="summary-item-body">
-                  <p class="summary-item-title">{{ lesson.title }}</p>
-                  <p class="summary-item-desc">{{ lesson.description ?? 'Contenu de la leçon ' + (idx + 1) }}</p>
-                </div>
-              </label>
-            </div>
+            <!-- Fichiers disponibles -->
+            <template v-else>
+              <div class="summary-select-header">
+                <span class="summary-select-label">Sélectionnez les documents à résumer</span>
+                <button class="summary-select-all" @click="selectAll">
+                  {{ selectedContentIds.length === summarizableContents.length ? 'Tout désélectionner' : 'Tout sélectionner' }}
+                </button>
+              </div>
 
-            <p class="summary-count">{{ selectedSections.length }} section(s) sélectionnée(s)</p>
+              <div class="summary-items">
+                <label
+                  v-for="content in summarizableContents"
+                  :key="content.id"
+                  class="summary-item"
+                  :class="{ 'summary-item--checked': selectedContentIds.includes(content.id) }"
+                >
+                  <input
+                    type="checkbox"
+                    class="summary-checkbox"
+                    :checked="selectedContentIds.includes(content.id)"
+                    @change="toggleContent(content.id)"
+                  />
+                  <span class="summary-item-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                  </span>
+                  <div class="summary-item-body">
+                    <p class="summary-item-title">{{ content.fileName }}</p>
+                    <p class="summary-item-desc">
+                      <span class="summary-item-badge badge-doc">Document</span>
+                      {{ content.mimeType?.split('/')[1]?.toUpperCase() ?? '' }} &bull; {{ Math.round(content.fileSize / 1024) }} KB
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <p class="summary-count">{{ selectedContentIds.length }} fichier(s) sélectionné(s)</p>
+            </template>
           </template>
 
           <button
             class="summary-generate-btn"
-            :disabled="selectedSections.length === 0 || isGenerating"
+            :disabled="selectedContentIds.length === 0 || isGenerating || summarizableContents.length === 0"
             @click="generateSummary"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -2290,14 +2350,34 @@ async function uploadCoverImage(event: Event) {
 }
 .summary-item--checked { border-color: #10B981; background: #ECFDF5; }
 .summary-checkbox { margin-top: 2px; accent-color: #10B981; flex-shrink: 0; }
-.summary-item-title { font-size: 0.85rem; font-weight: 600; color: #111827; margin: 0 0 2px; }
-.summary-item-desc  { font-size: 0.75rem; color: #6B7280; margin: 0; line-height: 1.4; }
+.summary-item-icon { flex-shrink: 0; margin-top: 2px; }
+.summary-item-title { font-size: 0.85rem; font-weight: 600; color: #111827; margin: 0 0 4px; word-break: break-all; }
+.summary-item-desc  { display: flex; align-items: center; gap: 0.4rem; font-size: 0.73rem; color: #6B7280; margin: 0; line-height: 1.4; }
+.summary-item-badge { display: inline-block; padding: 1px 7px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }
+.badge-video { background: #EEF2FF; color: #6366F1; }
+.badge-doc   { background: #ECFDF5; color: #059669; }
 .summary-count { font-size: 0.78rem; color: #6B7280; margin: 0; }
+.summary-no-content {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  padding: 1.5rem; text-align: center; color: #9CA3AF; font-size: 0.82rem; line-height: 1.5;
+}
 .summary-result {
   background: #ECFDF5; border: 1.5px solid #A7F3D0; border-radius: 10px;
   padding: 1rem 1.1rem;
 }
-.summary-result p { font-size: 0.875rem; color: #064E3B; line-height: 1.6; margin: 0; }
+.summary-result p { font-size: 0.875rem; color: #064E3B; line-height: 1.6; margin: 0; white-space: pre-wrap; }
+.summary-reset-btn {
+  margin-top: 0.75rem; background: none; border: 1.5px solid #10B981;
+  color: #10B981; border-radius: 8px; padding: 0.4rem 0.9rem;
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+.summary-reset-btn:hover { background: #10B981; color: #fff; }
+.summary-error {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: #FEF2F2; border: 1.5px solid #FCA5A5; border-radius: 10px;
+  padding: 0.75rem 1rem; font-size: 0.82rem; color: #991B1B;
+}
 .summary-generate-btn {
   display: flex; align-items: center; justify-content: center; gap: 0.5rem;
   width: 100%; padding: 0.8rem; border-radius: 10px;
