@@ -65,6 +65,12 @@ const router = createRouter({
       component: () => import('../views/CreateCourseView.vue'),
     },
     {
+      path: '/mes-cours-enseignant',
+      name: 'mes-cours-enseignant',
+      component: () => import('../views/MesCoursEnseignantView.vue'),
+      meta: { requiresAuth: true, enseignantOnly: true },
+    },
+    {
       path: '/messagerie',
       name: 'messagerie',
       component: () => import('../views/MessagerieView.vue'),
@@ -87,7 +93,11 @@ router.beforeEach((to, from, next) => {
   const guestOnly = to.meta.guestOnly
   const adminOnly = to.meta.adminOnly
 
+  const enseignantOnly = to.meta.enseignantOnly
+
   if (adminOnly && currentUser?.role !== 'admin') {
+    next({ name: 'home' })
+  } else if (enseignantOnly && currentUser?.role !== 'enseignant' && currentUser?.role !== 'admin') {
     next({ name: 'home' })
   } else if (requiresAuth && !isAuthenticated) {
     next({

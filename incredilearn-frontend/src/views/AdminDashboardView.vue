@@ -151,15 +151,19 @@ function dotCy(v: number) {
   return chartHeight - 10 - ((v / maxVal) * (chartHeight - 20))
 }
 
-// Bar chart
-const barData = [
-  { label: 'Programmation', value: 3800 },
-  { label: 'Design', value: 2800 },
-  { label: 'Marketing', value: 2200 },
-  { label: 'Business', value: 2000 },
-  { label: 'Langues', value: 1800 },
-]
-const barMax = 4500
+// Bar chart — computed from real course data
+const barData = computed(() => {
+  const domainMap: Record<string, number> = {}
+  for (const c of allCourses.value) {
+    const d = c.domain || 'Autre'
+    domainMap[d] = (domainMap[d] || 0) + (c.nombreEtudiants || 0)
+  }
+  return Object.entries(domainMap)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5)
+})
+const barMax = computed(() => Math.max(...barData.value.map(b => b.value), 1) * 1.25)
 const barChartW = 280
 const barChartH = 160
 const barWidth = 36
@@ -169,7 +173,7 @@ function barX(i: number) {
   return 20 + i * (barWidth + barGap)
 }
 function barH(v: number) {
-  return (v / barMax) * (barChartH - 20)
+  return (v / barMax.value) * (barChartH - 20)
 }
 function barY(v: number) {
   return barChartH - 10 - barH(v)
@@ -320,24 +324,29 @@ function barY(v: number) {
             <div class="chart-header">
               <div>
                 <div class="chart-title">Catégories Populaires</div>
-                <div class="chart-sub">Top 5 des cours</div>
+                <div class="chart-sub">Top 5 par nombre d'inscrits</div>
               </div>
             </div>
             <svg :width="barChartW + 20" :height="barChartH + 40" style="display:block;margin:0 auto">
               <!-- Grid lines -->
               <line v-for="i in 3" :key="i" :x1="10" :y1="barChartH - 10 - ((i/3) * (barChartH-20))" :x2="barChartW + 10" :y2="barChartH - 10 - ((i/3)*(barChartH-20))" stroke="#e5e7eb" stroke-width="1"/>
               <!-- Y labels -->
-              <text v-for="i in 3" :key="'y'+i" :x="8" :y="barChartH - 10 - ((i/3)*(barChartH-20)) + 4" text-anchor="end" font-size="9" fill="#9ca3af">{{ Math.round((i/3)*barMax/1000) }}k</text>
+              <text v-for="i in 3" :key="'y'+i" :x="8" :y="barChartH - 10 - ((i/3)*(barChartH-20)) + 4" text-anchor="end" font-size="9" fill="#9ca3af">{{ Math.round((i/3)*barMax.value) }}</text>
               <!-- Bars -->
               <rect v-for="(b, i) in barData" :key="'b'+i"
                 :x="barX(i) + 10" :y="barY(b.value)" :width="barWidth" :height="barH(b.value)"
                 fill="#3b82f6" rx="3"
               />
+              <!-- Value on top of each bar -->
+              <text v-for="(b, i) in barData" :key="'bv'+i"
+                :x="barX(i) + 10 + barWidth/2" :y="barY(b.value) - 3"
+                text-anchor="middle" font-size="8" fill="#374151" font-weight="600"
+              >{{ b.value }}</text>
               <!-- Labels -->
               <text v-for="(b, i) in barData" :key="'bl'+i"
                 :x="barX(i) + 10 + barWidth/2" :y="barChartH + 22"
                 text-anchor="middle" font-size="8" fill="#9ca3af"
-              >{{ b.label.slice(0, 6) }}...</text>
+              >{{ b.label.length > 7 ? b.label.slice(0, 7) + '.' : b.label }}</text>
             </svg>
           </div>
         </div>

@@ -117,6 +117,15 @@ function getBadgeClass(niveau: string): string {
   return 'badge-blue'
 }
 
+function formatDuration(totalSeconds: number): string {
+  if (!totalSeconds || totalSeconds <= 0) return '-'
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  if (h > 0 && m > 0) return `${h}h${String(m).padStart(2, '0')}`
+  if (h > 0) return `${h}h`
+  return `${m}min`
+}
+
 onMounted(async () => {
   try {
     const res = await fetch('http://localhost:8080/api/courses')
@@ -127,11 +136,11 @@ onMounted(async () => {
       title: c.titre,
       instructor: c.enseignantNom || 'Instructeur',
       description: c.description || '',
-      duration: c.dureeHeures ? `${c.dureeHeures}h` : '-',
+      duration: formatDuration(c.dureeTotaleSecondes),
       students: c.nombreEtudiants != null ? String(c.nombreEtudiants) : '0',
       badge: c.niveau || 'Débutant',
       badgeClass: getBadgeClass(c.niveau),
-      image: getCourseImage(c.titre, c.domain),
+      image: c.imageUrl ? 'http://localhost:8080' + c.imageUrl : getCourseImage(c.titre, c.domain),
       domain: c.domain || '',
       rating: 4.7,
     }))
@@ -183,8 +192,8 @@ const filteredCourses = computed(() => {
     <!-- Hero -->
     <section class="hero">
       <div class="hero-content">
-        <h1>Tous les cours</h1>
-        <p>Explorez notre catalogue complet de {{ allCourses.length }} formations</p>
+        <h1>Tous les <span class="hero-accent">cours</span></h1>
+        <p>Explorez notre catalogue complet de formations</p>
       </div>
     </section>
 
@@ -329,13 +338,13 @@ const filteredCourses = computed(() => {
 
 /* ── Hero ────────────────────────────────────────────────── */
 .hero {
-  background: linear-gradient(135deg, #6c46ff 0%, #a855f7 100%);
-  color: white;
+  background: linear-gradient(to bottom, #ecfdf5 0%, #f0fdf8 40%, #ffffff 100%);
   padding: 60px 24px 48px;
   text-align: center;
 }
-.hero h1 { font-size: 2.4rem; font-weight: 800; margin: 0 0 8px; }
-.hero p  { font-size: 1.1rem; opacity: .85; margin: 0; }
+.hero h1 { font-size: 2.4rem; font-weight: 800; margin: 0 0 8px; color: #111827; }
+.hero-accent { color: #10B981; }
+.hero p  { font-size: 1.1rem; color: #6B7280; margin: 0; }
 
 /* ── Filters ─────────────────────────────────────────────── */
 .filters-bar {
@@ -553,7 +562,7 @@ const filteredCourses = computed(() => {
 .avatar {
   width: 30px; height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6c46ff, #a855f7);
+  background: linear-gradient(135deg, #10B981, #34d399);
   color: white;
   display: flex; align-items: center; justify-content: center;
   font-size: .8rem; font-weight: 700;
@@ -573,7 +582,7 @@ const filteredCourses = computed(() => {
 .empty button {
   margin-top: 16px;
   padding: 10px 24px;
-  background: #6c46ff;
+  background: #10B981;
   color: white;
   border: none;
   border-radius: 10px;
