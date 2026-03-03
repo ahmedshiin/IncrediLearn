@@ -2,6 +2,16 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
 import StarPolygon from '@/components/StarPolygon.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+
+function getUserRating(courseId: number): number {
+  const userId = authStore.user?.id
+  if (!userId) return 0
+  const saved = localStorage.getItem(`incredilearn_rating_${userId}_${courseId}`)
+  return saved ? Number(saved) : 0
+}
 
 const searchQuery  = ref('')
 const selectedCat  = ref('Tous')
@@ -101,12 +111,13 @@ function getBadgeClass(niveau: string): string {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapCourse(c: any): CourseItem {
+  const userRating = getUserRating(c.id)
   return {
     id: c.id,
     title: c.titre,
     instructor: c.enseignantNom || 'Instructeur',
     description: c.description || '',
-    rating: 4.7,
+    rating: userRating > 0 ? userRating : 4.7,
     duration: c.dureeHeures ? `${c.dureeHeures}h` : '-',
     students: c.nombreEtudiants != null ? String(c.nombreEtudiants) : '0',
     badge: c.niveau || 'Débutant',
@@ -129,7 +140,8 @@ onMounted(async () => {
     const res = await fetch('http://localhost:8080/api/courses')
     const data = await res.json()
     allCourses.value = data.map(mapCourse)
-    data.forEach(c => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data.forEach((c: any) => {
       console.log(
         `Titre: ${c.titre} | Auteur: ${c.enseignantNom} | Domaine: ${c.domain}`
       )
